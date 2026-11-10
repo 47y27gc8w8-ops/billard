@@ -1,0 +1,136 @@
+/*
+ * Billard theme. Colours come from the Palette class as looked-up colours (-ground, -ink, -accent ...),
+ * set on the scene root, so this file holds no hex values.
+ * Flat fills only: no gradients, no shadows, no outlines except the keyboard focus ring.
+ */
+
+.root {
+    -fx-background-color: -ground;
+    -fx-font-family: "Segoe UI Variable Display", "Segoe UI", "Helvetica Neue", "Arial", sans-serif;
+    -fx-font-size: 16px;
+    -fx-text-fill: -ink;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.label {
+    -fx-text-fill: -ink;
+}
+
+.muted {
+    -fx-text-fill: -ink-muted;
+}
+
+/* Type: one very large size, one reading size, a few steps between. */
+
+.display {
+    -fx-font-size: 108px;
+    -fx-font-weight: 800;
+}
+
+.display-medium {
+    -fx-font-size: 56px;
+    -fx-font-weight: 800;
+}
+
+.lead {
+    -fx-font-size: 24px;
+    -fx-line-spacing: 4px;
+}
+
+.status {
+    -fx-font-size: 18px;
+    -fx-padding: 0 8 0 8;
+}
+
+.player-name {
+    -fx-font-size: 22px;
+    -fx-font-weight: 700;
+}
+
+.rule-name {
+    -fx-font-weight: 700;
+    -fx-text-fill: -accent;
+}
+
+/* Buttons: flat, square, one fill. The primary action carries the accent. */
+
+.button {
+    -fx-background-color: -panel-raised;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-text-fill: -ink;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-padding: 14 22 14 22;
+    -fx-border-color: transparent;
+    -fx-border-width: 3;
+    -fx-border-radius: 0;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: derive(-panel-raised, 14%);
+}
+
+.button:pressed {
+    -fx-background-color: derive(-panel-raised, -10%);
+}
+
+.button:focused {
+    -fx-border-color: -ink;
+}
+
+.button.primary {
+    -fx-background-color: -accent;
+    -fx-text-fill: -accent-ink;
+}
+
+.button.primary:hover {
+    -fx-background-color: derive(-accent, 18%);
+}
+
+.button.primary:pressed {
+    -fx-background-color: derive(-accent, -14%);
+}
+
+.button.primary:focused {
+    -fx-border-color: -ink;
+}
+
+/* Menu */
+
+.cloth-field {
+    -fx-background-color: -cloth;
+}
+
+.rail-strip {
+    -fx-background-color: -rail;
+}
+
+/* Match screen */
+
+.player-card {
+    -fx-background-color: -panel;
+    -fx-padding: 14 20 14 0;
+}
+
+.player-card.active {
+    -fx-background-color: -panel-raised;
+}
+
+.turn-marker {
+    -fx-background-color: transparent;
+}
+
+.player-card.active .turn-marker {
+    -fx-background-color: -accent;
+}
+
+.overlay {
+    -fx-background-color: rgba(12, 20, 17, 0.9);
+}
+
+.overlay-card {
+    -fx-background-color: -panel;
+}
