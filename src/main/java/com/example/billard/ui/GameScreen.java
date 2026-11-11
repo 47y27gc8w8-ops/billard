@@ -28,7 +28,8 @@ public final class GameScreen extends BorderPane {
     private static final double WIDE_LAYOUT_MIN_WIDTH = 1100;
     private static final double CARD_WIDTH = 250;
     private static final String CONTROLS_HINT =
-            "Aim: mouse or ← → (Shift for fine)     Power: wheel or ↑ ↓     Shoot: click or Space";
+            "Aim: mouse or ← → (Shift for fine)     Lock aim: right click     Power: wheel or ↑ ↓     "
+                    + "Shoot: click or Space";
 
     private final GameSession session;
     private final GameCanvas gameCanvas;

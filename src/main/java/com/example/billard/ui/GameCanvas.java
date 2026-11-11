@@ -14,8 +14,8 @@ import javafx.scene.layout.Pane;
 /**
  * The table view. Draws the session each frame and translates mouse and keyboard input into session calls.
  *
- * <p>Controls: mouse or left/right arrows aim (Shift for fine steps), wheel or up/down arrows set power,
- * click or Space shoots. While placing the cue ball the mouse or arrows move it and click or Enter confirms.
+ * <p>Controls: mouse or left/right arrows aim (Shift for fine steps), right click locks or unlocks the aim,
+ * wheel or up/down arrows set power, click or Space shoots. While placing the cue ball the mouse or arrows move it and click or Enter confirms.
  */
 final class GameCanvas extends Pane {
 
@@ -92,11 +92,12 @@ final class GameCanvas extends Pane {
 
     private void pressMouse(MouseEvent event) {
         requestFocus();
-        if (event.getButton() != MouseButton.PRIMARY) {
-            return;
+        if (event.getButton() == MouseButton.SECONDARY) {
+            session.toggleAimLock();
+        } else if (event.getButton() == MouseButton.PRIMARY) {
+            steerWithMouse(event);
+            commitAction();
         }
-        steerWithMouse(event);
-        commitAction();
     }
 
     private void scrollPower(ScrollEvent event) {

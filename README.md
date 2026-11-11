@@ -30,6 +30,7 @@ builds a self-contained runtime image in `target/billard`, started with `target/
 | Action | Input |
 | :--- | :--- |
 | Aim | Mouse, or `←` `→` (hold `Shift` for fine steps) |
+| Lock / unlock aim | Right click |
 | Power | Mouse wheel, `↑` `↓`, or click the power bar |
 | Shoot | Left click or `Space` |
 | Place the cue ball (after a foul) | Mouse or arrow keys, then click or `Enter` |

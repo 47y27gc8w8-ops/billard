@@ -16,7 +16,9 @@ final class StatusText {
         return switch (session.phase()) {
             case BALLS_MOVING -> "Balls rolling.";
             case PLACING_CUE -> recap(session) + player + " has ball in hand. Place the cue ball, then click or press Enter.";
-            case AIMING -> recap(session) + (session.match().isBreakShot() ? player + " to break." : player + " to shoot.");
+            case AIMING -> session.isAimLocked()
+                    ? "Aim locked. Set the power, then shoot. Right click to aim again."
+                    : recap(session) + (session.match().isBreakShot() ? player + " to break." : player + " to shoot.");
             case GAME_OVER -> gameOverReason(session);
         };
     }

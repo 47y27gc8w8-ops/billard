@@ -27,6 +27,7 @@ public final class GameSession {
     private double aimAngle;
     private double power = DEFAULT_POWER;
     private boolean placementValid = true;
+    private boolean aimLocked;
     private Optional<TurnOutcome> lastOutcome = Optional.empty();
 
     public GameSession(Table table) {
@@ -85,17 +86,32 @@ public final class GameSession {
         return AimPredictor.predict(table, balls, cueBall, aimAngle);
     }
 
+    public boolean isAimLocked() {
+        return aimLocked;
+    }
+
+    /** Fixes the current aim so power can be set without disturbing it; calling it again unlocks. */
+    public void toggleAimLock() {
+        if (phase == GamePhase.AIMING) {
+            aimLocked = !aimLocked;
+        }
+    }
+
     public void aimToward(Vec2 target) {
         Vec2 offset = target.minus(cueBall.position());
-        if (phase == GamePhase.AIMING && offset.length() > 1e-6) {
+        if (canAim() && offset.length() > 1e-6) {
             aimAngle = offset.angle();
         }
     }
 
     public void rotateAim(double radians) {
-        if (phase == GamePhase.AIMING) {
+        if (canAim()) {
             aimAngle += radians;
         }
+    }
+
+    private boolean canAim() {
+        return phase == GamePhase.AIMING && !aimLocked;
     }
 
     public void setPower(double value) {
@@ -111,6 +127,7 @@ public final class GameSession {
             return;
         }
         recorder.reset();
+        aimLocked = false;
         lastOutcome = Optional.empty();
         cueBall.setVelocity(Vec2.fromAngle(aimAngle).times(power * MAX_SHOT_SPEED));
         phase = GamePhase.BALLS_MOVING;

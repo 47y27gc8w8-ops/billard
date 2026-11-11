@@ -77,6 +77,39 @@ class GameSessionTest {
     }
 
     @Test
+    void lockedAimIgnoresMouseAndKeysButStillAllowsPower() {
+        session.aimToward(session.cueBall().position().plus(new Vec2(100, 0)));
+        session.toggleAimLock();
+
+        session.aimToward(session.cueBall().position().plus(new Vec2(0, 100)));
+        session.rotateAim(1.0);
+        session.setPower(0.9);
+
+        assertEquals(0.0, session.aimAngle(), 1e-9);
+        assertEquals(0.9, session.power());
+    }
+
+    @Test
+    void togglingAgainUnlocksTheAim() {
+        session.toggleAimLock();
+        session.toggleAimLock();
+
+        session.aimToward(session.cueBall().position().plus(new Vec2(0, 100)));
+
+        assertEquals(Math.PI / 2, session.aimAngle(), 1e-9);
+    }
+
+    @Test
+    void shootingReleasesTheLock() {
+        session.toggleAimLock();
+
+        session.shoot();
+
+        assertEquals(GamePhase.BALLS_MOVING, session.phase());
+        assertTrue(!session.isAimLocked());
+    }
+
+    @Test
     void aimTowardPointsTheCueAtThePoint() {
         session.aimToward(session.cueBall().position().plus(new Vec2(0, 100)));
 

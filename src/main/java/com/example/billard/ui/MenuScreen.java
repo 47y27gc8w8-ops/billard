@@ -70,7 +70,8 @@ public final class MenuScreen extends HBox {
 
         VBox rules = new VBox(14,
                 rule("Aim", "Move the mouse, or use ← →. Hold Shift for fine steps."),
-                rule("Power", "Scroll the wheel, use ↑ ↓, or click the power bar."),
+                rule("Lock aim", "Right click fixes your aim so you can set the power. Right click again to aim anew."),
+                rule("Power","Scroll the wheel, use ↑ ↓, or click the power bar."),
                 rule("Shoot", "Left click or press Space."),
                 rule("Groups", "The first ball you pot on the open table decides your group: solids or stripes."),
                 rule("Win", "Clear your group, then pot the 8-ball. Pot it early and you lose."),
