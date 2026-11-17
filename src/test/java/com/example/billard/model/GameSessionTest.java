@@ -110,6 +110,26 @@ class GameSessionTest {
     }
 
     @Test
+    void chosenTipContactBecomesSpinOnTheCueBallAndResetsAfterTheShot() {
+        session.setTipContact(new TipContact(0.5, 1.0));
+
+        session.shoot();
+
+        assertTrue(session.cueBall().rollSpin().x() > 0);
+        assertTrue(session.cueBall().sideSpin() != 0);
+        assertEquals(TipContact.CENTER, session.tipContact());
+    }
+
+    @Test
+    void tipContactCannotBeChangedWhileBallsRoll() {
+        session.shoot();
+
+        session.setTipContact(new TipContact(0.5, 0.5));
+
+        assertEquals(TipContact.CENTER, session.tipContact());
+    }
+
+    @Test
     void aimTowardPointsTheCueAtThePoint() {
         session.aimToward(session.cueBall().position().plus(new Vec2(0, 100)));
 

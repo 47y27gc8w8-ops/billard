@@ -98,6 +98,14 @@
     -fx-border-color: -ink;
 }
 
+.button.spin-button {
+    -fx-padding: 6 14 6 18;
+}
+
+.button:disabled {
+    -fx-opacity: 0.5;
+}
+
 /* Menu */
 
 .cloth-field {

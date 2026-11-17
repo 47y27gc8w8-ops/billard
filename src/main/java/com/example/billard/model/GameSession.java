@@ -28,6 +28,7 @@ public final class GameSession {
     private double power = DEFAULT_POWER;
     private boolean placementValid = true;
     private boolean aimLocked;
+    private TipContact tipContact = TipContact.CENTER;
     private Optional<TurnOutcome> lastOutcome = Optional.empty();
 
     public GameSession(Table table) {
@@ -122,6 +123,17 @@ public final class GameSession {
         setPower(power + delta);
     }
 
+    /** Where the cue will hit the cue ball. Back to the centre after every shot. */
+    public TipContact tipContact() {
+        return tipContact;
+    }
+
+    public void setTipContact(TipContact contact) {
+        if (phase == GamePhase.AIMING) {
+            tipContact = contact;
+        }
+    }
+
     public void shoot() {
         if (phase != GamePhase.AIMING) {
             return;
@@ -129,8 +141,17 @@ public final class GameSession {
         recorder.reset();
         aimLocked = false;
         lastOutcome = Optional.empty();
-        cueBall.setVelocity(Vec2.fromAngle(aimAngle).times(power * MAX_SHOT_SPEED));
+        strikeCueBall();
+        tipContact = TipContact.CENTER;
         phase = GamePhase.BALLS_MOVING;
+    }
+
+    private void strikeCueBall() {
+        Vec2 direction = Vec2.fromAngle(aimAngle);
+        double speed = power * MAX_SHOT_SPEED;
+        cueBall.setVelocity(direction.times(speed));
+        cueBall.setRollSpin(tipContact.rollSpin(direction, speed));
+        cueBall.setSideSpin(tipContact.sideSpin(speed));
     }
 
     /** Moves the simulation forward. Does nothing unless balls are rolling. */

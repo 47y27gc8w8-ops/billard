@@ -12,6 +12,7 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -27,9 +28,10 @@ public final class GameScreen extends BorderPane {
     private static final double NANOS_PER_SECOND = 1e9;
     private static final double WIDE_LAYOUT_MIN_WIDTH = 1100;
     private static final double CARD_WIDTH = 250;
+    private static final double SPIN_BUTTON_FACE_SIZE = 40;
     private static final String CONTROLS_HINT =
             "Aim: mouse or ← → (Shift for fine)     Lock aim: right click     Power: wheel or ↑ ↓     "
-                    + "Shoot: click or Space";
+                    + "Spin: click the cue ball     Shoot: click or Space";
 
     private final GameSession session;
     private final GameCanvas gameCanvas;
@@ -38,6 +40,9 @@ public final class GameScreen extends BorderPane {
     private final Label statusLabel = new Label();
     private final HBox playerRow = new HBox(24);
     private final PowerMeter powerMeter;
+    private final SpinPicker spinPicker;
+    private final CueBallFace spinFace = new CueBallFace(SPIN_BUTTON_FACE_SIZE, false);
+    private final Button spinButton = new Button("Spin");
     private final StackPane gameOverOverlay = new StackPane();
     private final Label winnerLabel = new Label();
     private final Label reasonLabel = new Label();
@@ -49,10 +54,11 @@ public final class GameScreen extends BorderPane {
         this.session = session;
         this.gameCanvas = new GameCanvas(session);
         this.powerMeter = new PowerMeter(session::setPower);
+        this.spinPicker = new SpinPicker(session, gameCanvas::requestFocus);
         this.timer = createTimer();
 
         setPadding(new Insets(28));
-        setCenter(new StackPane(gameCanvas, buildGameOverOverlay(onNewMatch, onMenu)));
+        setCenter(new StackPane(gameCanvas, spinPicker, buildGameOverOverlay(onNewMatch, onMenu)));
         setBottom(buildBottomBar(onNewMatch, onMenu));
         configureTopBar();
         widthProperty().addListener((observable, before, width) -> {
@@ -108,11 +114,22 @@ public final class GameScreen extends BorderPane {
         hint.getStyleClass().add("muted");
         hint.setWrapText(true);
 
-        HBox controls = new HBox(12, powerMeter, spacer(), menuButton, newMatch);
+        configureSpinButton();
+
+        HBox controls = new HBox(24, powerMeter, spinButton, spacer(), menuButton, newMatch);
         controls.setAlignment(Pos.CENTER_LEFT);
         VBox bar = new VBox(14, controls, hint);
         bar.setPadding(new Insets(20, 0, 0, 0));
         return bar;
+    }
+
+    private void configureSpinButton() {
+        spinButton.setGraphic(spinFace);
+        spinButton.setContentDisplay(ContentDisplay.RIGHT);
+        spinButton.setGraphicTextGap(12);
+        spinButton.getStyleClass().add("spin-button");
+        spinButton.setAccessibleHelp("Choose where the cue hits the cue ball");
+        spinButton.setOnAction(event -> spinPicker.open());
     }
 
     private StackPane buildGameOverOverlay(Runnable onNewMatch, Runnable onMenu) {
@@ -164,6 +181,8 @@ public final class GameScreen extends BorderPane {
         playerTwo.update(cardViewOf(Player.TWO));
         statusLabel.setText(StatusText.describe(session));
         powerMeter.update(session.power());
+        spinFace.show(session.tipContact());
+        spinButton.setDisable(session.phase() != GamePhase.AIMING);
         showGameOverIfFinished();
     }
 

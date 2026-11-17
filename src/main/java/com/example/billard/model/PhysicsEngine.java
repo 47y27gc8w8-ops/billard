@@ -3,8 +3,10 @@ package com.example.billard.model;
 import java.util.List;
 
 /**
- * Fixed-step simulation of balls rolling, bouncing and dropping into pockets. No spin: balls decelerate at a
- * constant rate and exchange momentum along the line of centres.
+ * Fixed-step simulation of balls rolling, bouncing and dropping into pockets. Balls decelerate at a constant
+ * rate and exchange momentum along the line of centres. Spin is simplified to two effects: follow or draw is
+ * stored on the ball and released as a velocity change when it hits another ball, and sideways spin (english)
+ * kicks the ball along the cushion when it bounces. Both fade slowly while the ball travels.
  */
 public final class PhysicsEngine {
 
@@ -14,6 +16,10 @@ public final class PhysicsEngine {
     private static final double STOP_SPEED = 10.0;
     private static final double BALL_RESTITUTION = 0.96;
     private static final double CUSHION_RESTITUTION = 0.76;
+    private static final double SPIN_FADE_PER_SECOND = 0.5;
+    private static final double ROLL_SPIN_RELEASE_RATIO = 0.7;
+    private static final double CUSHION_GRIP = 0.3;
+    private static final double CUSHION_SIDE_SPIN_RETENTION = 0.5;
     private static final int MAX_STEPS_PER_ADVANCE = 60;
 
     private final Table table;
@@ -53,12 +59,23 @@ public final class PhysicsEngine {
 
     private void moveAndSlow(Ball ball) {
         ball.setPosition(ball.position().plus(ball.velocity().times(FIXED_STEP)));
+        fadeSpin(ball);
         double speed = ball.velocity().length();
         if (speed == 0) {
             return;
         }
         double slowedSpeed = speed - ROLLING_DECELERATION * FIXED_STEP;
-        ball.setVelocity(slowedSpeed < STOP_SPEED ? Vec2.ZERO : ball.velocity().times(slowedSpeed / speed));
+        if (slowedSpeed < STOP_SPEED) {
+            ball.stop();
+        } else {
+            ball.setVelocity(ball.velocity().times(slowedSpeed / speed));
+        }
+    }
+
+    private void fadeSpin(Ball ball) {
+        double keep = 1 - SPIN_FADE_PER_SECOND * FIXED_STEP;
+        ball.setRollSpin(ball.rollSpin().times(keep));
+        ball.setSideSpin(ball.sideSpin() * keep);
     }
 
     private boolean tryPocket(Ball ball) {
@@ -78,29 +95,45 @@ public final class PhysicsEngine {
         double y = ball.position().y();
         double vx = ball.velocity().x();
         double vy = ball.velocity().y();
+        double sideKickX = 0;
+        double sideKickY = 0;
         boolean bounced = false;
 
         if (x < radius || x > table.width() - radius) {
             boolean movingIntoWall = (x < radius) == (vx < 0) && vx != 0;
+            double wallSign = x < radius ? -1 : 1;
             x = Math.max(radius, Math.min(table.width() - radius, x));
             if (movingIntoWall) {
+                sideKickY = wallSign * englishKick(ball, vx);
                 vx = -vx * CUSHION_RESTITUTION;
                 bounced = true;
             }
         }
         if (y < radius || y > table.height() - radius) {
             boolean movingIntoWall = (y < radius) == (vy < 0) && vy != 0;
+            double wallSign = y < radius ? -1 : 1;
             y = Math.max(radius, Math.min(table.height() - radius, y));
             if (movingIntoWall) {
+                sideKickX = -wallSign * englishKick(ball, vy);
                 vy = -vy * CUSHION_RESTITUTION;
                 bounced = true;
             }
         }
         ball.setPosition(new Vec2(x, y));
-        ball.setVelocity(new Vec2(vx, vy));
+        ball.setVelocity(new Vec2(vx + sideKickX, vy + sideKickY));
         if (bounced) {
+            ball.setSideSpin(ball.sideSpin() * CUSHION_SIDE_SPIN_RETENTION);
             listener.onCushionHit(ball);
         }
+    }
+
+    /**
+     * Speed gained along the cushion from the ball's sideways spin: the cushion's friction turns the spin into
+     * motion, but never more than a fraction of the speed the ball hit it with.
+     */
+    private double englishKick(Ball ball, double speedIntoCushion) {
+        double limit = CUSHION_GRIP * Math.abs(speedIntoCushion);
+        return Math.max(-limit, Math.min(limit, -ball.sideSpin()));
     }
 
     private void resolveCollisions(List<Ball> balls) {
@@ -132,7 +165,15 @@ public final class PhysicsEngine {
         double impulse = (1 + BALL_RESTITUTION) / 2 * approachSpeed;
         first.setVelocity(first.velocity().minus(normal.times(impulse)));
         second.setVelocity(second.velocity().plus(normal.times(impulse)));
+        releaseRollSpin(first);
+        releaseRollSpin(second);
         listener.onBallCollision(first, second);
+    }
+
+    /** Follow pushes the ball on after the hit, draw pulls it back; either way the spin is used up. */
+    private void releaseRollSpin(Ball ball) {
+        ball.setVelocity(ball.velocity().plus(ball.rollSpin().times(ROLL_SPIN_RELEASE_RATIO)));
+        ball.setRollSpin(Vec2.ZERO);
     }
 
     private void separate(Ball first, Ball second, Vec2 normal, double overlap) {

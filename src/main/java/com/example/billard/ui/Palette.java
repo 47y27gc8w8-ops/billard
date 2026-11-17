@@ -31,6 +31,7 @@ public final class Palette {
     public static final Color GUIDE_LINE = Color.color(1, 1, 1, 0.6);
     public static final Color GUIDE_GHOST = Color.color(1, 1, 1, 0.85);
     public static final Color BALL_HIGHLIGHT = Color.color(1, 1, 1, 0.5);
+    public static final Color BALL_CROSSHAIR = Color.color(0.08, 0.09, 0.1, 0.22);
 
     public static final Color CUE_BALL = Color.web("#F5F3EC");
     public static final Color CUE_SHAFT = Color.web("#E4C99B");
