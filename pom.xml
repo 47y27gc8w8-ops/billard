@@ -22,6 +22,11 @@
             <artifactId>javafx-controls</artifactId>
             <version>${javafx.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -56,7 +61,7 @@
                 <configuration>
                     <mainClass>com.example.billard/com.example.billard.BilliardApplication</mainClass>
                     <options>
-                        <option>--enable-native-access=javafx.graphics</option>
+                        <option>--enable-native-access=javafx.graphics,javafx.media</option>
                     </options>
                     <launcher>billard</launcher>
                     <jlinkZipName>billard</jlinkZipName>

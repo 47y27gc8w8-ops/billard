@@ -53,6 +53,37 @@
     -fx-text-fill: -accent;
 }
 
+.fine-print {
+    -fx-font-size: 13px;
+    -fx-line-spacing: 2px;
+}
+
+/* Sliders: a flat bar and a square accent thumb; the focus ring is an ink frame around the thumb. */
+
+.slider .track {
+    -fx-background-color: -panel-raised;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-padding: 4;
+}
+
+.slider .thumb {
+    -fx-background-color: -accent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-padding: 11 7 11 7;
+    -fx-cursor: hand;
+}
+
+.slider .thumb:hover {
+    -fx-background-color: derive(-accent, 18%);
+}
+
+.slider:focused .thumb {
+    -fx-background-color: -ink, -accent;
+    -fx-background-insets: -3, 0;
+}
+
 /* Buttons: flat, square, one fill. The primary action carries the accent. */
 
 .button {
