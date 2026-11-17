@@ -1,5 +1,6 @@
 package com.example.billard.ui;
 
+import java.util.List;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -21,13 +22,16 @@ public final class MenuScreen extends HBox {
     private final Button backButton = new Button("Back");
     private final VBox mainColumn;
     private final VBox howToColumn;
+    private final SettingsPanel settingsColumn;
 
-    public MenuScreen(Runnable onStart, Runnable onQuit) {
+    public MenuScreen(GameAudio audio, Runnable onStart, Runnable onQuit) {
         this.mainColumn = buildMainColumn(onStart, onQuit);
         this.howToColumn = buildHowToColumn();
+        this.settingsColumn = new SettingsPanel(audio, this::showMain);
         howToColumn.setVisible(false);
+        settingsColumn.setVisible(false);
 
-        StackPane textSide = new StackPane(mainColumn, howToColumn);
+        StackPane textSide = new StackPane(mainColumn, howToColumn, settingsColumn);
         textSide.setMinWidth(TEXT_COLUMN_WIDTH);
         textSide.setMaxWidth(TEXT_COLUMN_WIDTH);
         textSide.setPadding(new Insets(TEXT_COLUMN_PADDING));
@@ -54,11 +58,13 @@ public final class MenuScreen extends HBox {
         startButton.getStyleClass().add("primary");
         startButton.setOnAction(event -> onStart.run());
         Button howTo = new Button("How to play");
-        howTo.setOnAction(event -> showHowTo(true));
+        howTo.setOnAction(event -> showHowTo());
+        Button settings = new Button("Settings");
+        settings.setOnAction(event -> showSettings());
         Button quit = new Button("Quit");
         quit.setOnAction(event -> onQuit.run());
 
-        HBox actions = new HBox(12, startButton, howTo, quit);
+        VBox actions = new VBox(12, new HBox(12, startButton, howTo), new HBox(12, settings, quit));
         VBox column = new VBox(28, title, pitch, actions);
         column.setAlignment(Pos.CENTER_LEFT);
         return column;
@@ -79,7 +85,7 @@ public final class MenuScreen extends HBox {
                         + "reaches a cushion gives your opponent ball in hand."));
 
         backButton.getStyleClass().add("primary");
-        backButton.setOnAction(event -> showHowTo(false));
+        backButton.setOnAction(event -> showMain());
 
         VBox column = new VBox(22, heading, rules, backButton);
         column.setAlignment(Pos.CENTER_LEFT);
@@ -94,9 +100,24 @@ public final class MenuScreen extends HBox {
         return new VBox(2, nameLabel, textLabel);
     }
 
-    private void showHowTo(boolean visible) {
-        howToColumn.setVisible(visible);
-        mainColumn.setVisible(!visible);
-        (visible ? backButton : startButton).requestFocus();
+    private void showMain() {
+        showOnly(mainColumn);
+        startButton.requestFocus();
+    }
+
+    private void showHowTo() {
+        showOnly(howToColumn);
+        backButton.requestFocus();
+    }
+
+    private void showSettings() {
+        showOnly(settingsColumn);
+        settingsColumn.focusFirstControl();
+    }
+
+    private void showOnly(VBox column) {
+        for (VBox each : List.of(mainColumn, howToColumn, settingsColumn)) {
+            each.setVisible(each == column);
+        }
     }
 }
