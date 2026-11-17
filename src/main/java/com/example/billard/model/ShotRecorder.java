@@ -22,7 +22,7 @@ public final class ShotRecorder implements PhysicsListener {
     }
 
     @Override
-    public void onBallCollision(Ball first, Ball second) {
+    public void onBallCollision(Ball first, Ball second, double impactSpeed) {
         if (firstContact.isPresent()) {
             return;
         }
@@ -34,14 +34,14 @@ public final class ShotRecorder implements PhysicsListener {
     }
 
     @Override
-    public void onCushionHit(Ball ball) {
+    public void onCushionHit(Ball ball, double impactSpeed) {
         if (firstContact.isPresent()) {
             railAfterContact = true;
         }
     }
 
     @Override
-    public void onPocketed(Ball ball) {
+    public void onPocketed(Ball ball, double speed) {
         pocketed.add(ball.kind());
     }
 }

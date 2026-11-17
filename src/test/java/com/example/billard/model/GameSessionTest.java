@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class GameSessionTest {
@@ -118,6 +120,28 @@ class GameSessionTest {
         assertTrue(session.cueBall().rollSpin().x() > 0);
         assertTrue(session.cueBall().sideSpin() != 0);
         assertEquals(TipContact.CENTER, session.tipContact());
+    }
+
+    @Test
+    void addedListenersHearTheCueStrikeAndTheCollisionsThatFollow() {
+        List<String> heard = new ArrayList<>();
+        session.addPhysicsListener(new PhysicsListener() {
+            @Override
+            public void onCueStruck(double power) {
+                heard.add("cue " + power);
+            }
+
+            @Override
+            public void onBallCollision(Ball first, Ball second, double impactSpeed) {
+                heard.add("collision");
+            }
+        });
+        session.setPower(1.0);
+
+        playShotToCompletion();
+
+        assertEquals("cue 1.0", heard.get(0));
+        assertTrue(heard.contains("collision"), "the break should hit the rack");
     }
 
     @Test

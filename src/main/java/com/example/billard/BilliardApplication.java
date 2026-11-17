@@ -1,5 +1,7 @@
 package com.example.billard;
 
+import com.example.billard.audio.AudioMixer;
+import com.example.billard.audio.SoundOutput;
 import com.example.billard.model.GameSession;
 import com.example.billard.model.Table;
 import com.example.billard.ui.GameScreen;
@@ -23,10 +25,12 @@ public final class BilliardApplication extends Application {
     private static final double SCREEN_FILL = 0.94;
 
     private final StackPane screenHost = new StackPane();
+    private SoundOutput soundOutput = SoundOutput.SILENT;
     private GameScreen activeGame;
 
     @Override
     public void start(Stage stage) {
+        soundOutput = AudioMixer.openDefault();
         Rectangle2D usable = Screen.getPrimary().getVisualBounds();
         double width = Math.min(START_WIDTH, usable.getWidth() * SCREEN_FILL);
         double height = Math.min(START_HEIGHT, usable.getHeight() * SCREEN_FILL);
@@ -44,6 +48,7 @@ public final class BilliardApplication extends Application {
     @Override
     public void stop() {
         stopActiveGame();
+        soundOutput.close();
     }
 
     private void showMenu() {
@@ -53,7 +58,7 @@ public final class BilliardApplication extends Application {
 
     private void startMatch() {
         stopActiveGame();
-        activeGame = new GameScreen(new GameSession(Table.standard()), this::startMatch, this::showMenu);
+        activeGame = new GameScreen(new GameSession(Table.standard()), soundOutput, this::startMatch, this::showMenu);
         screenHost.getChildren().setAll(activeGame);
         activeGame.start();
     }

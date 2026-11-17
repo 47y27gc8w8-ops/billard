@@ -81,8 +81,9 @@ public final class PhysicsEngine {
     private boolean tryPocket(Ball ball) {
         for (Table.Pocket pocket : table.pockets()) {
             if (pocket.center().distanceTo(ball.position()) < pocket.captureRadius()) {
+                double speed = ball.velocity().length();
                 ball.pocket();
-                listener.onPocketed(ball);
+                listener.onPocketed(ball, speed);
                 return true;
             }
         }
@@ -97,7 +98,7 @@ public final class PhysicsEngine {
         double vy = ball.velocity().y();
         double sideKickX = 0;
         double sideKickY = 0;
-        boolean bounced = false;
+        double impactSpeed = 0;
 
         if (x < radius || x > table.width() - radius) {
             boolean movingIntoWall = (x < radius) == (vx < 0) && vx != 0;
@@ -105,8 +106,8 @@ public final class PhysicsEngine {
             x = Math.max(radius, Math.min(table.width() - radius, x));
             if (movingIntoWall) {
                 sideKickY = wallSign * englishKick(ball, vx);
+                impactSpeed = Math.abs(vx);
                 vx = -vx * CUSHION_RESTITUTION;
-                bounced = true;
             }
         }
         if (y < radius || y > table.height() - radius) {
@@ -115,15 +116,15 @@ public final class PhysicsEngine {
             y = Math.max(radius, Math.min(table.height() - radius, y));
             if (movingIntoWall) {
                 sideKickX = -wallSign * englishKick(ball, vy);
+                impactSpeed = Math.max(impactSpeed, Math.abs(vy));
                 vy = -vy * CUSHION_RESTITUTION;
-                bounced = true;
             }
         }
         ball.setPosition(new Vec2(x, y));
         ball.setVelocity(new Vec2(vx + sideKickX, vy + sideKickY));
-        if (bounced) {
+        if (impactSpeed > 0) {
             ball.setSideSpin(ball.sideSpin() * CUSHION_SIDE_SPIN_RETENTION);
-            listener.onCushionHit(ball);
+            listener.onCushionHit(ball, impactSpeed);
         }
     }
 
@@ -167,7 +168,7 @@ public final class PhysicsEngine {
         second.setVelocity(second.velocity().plus(normal.times(impulse)));
         releaseRollSpin(first);
         releaseRollSpin(second);
-        listener.onBallCollision(first, second);
+        listener.onBallCollision(first, second, approachSpeed);
     }
 
     /** Follow pushes the ball on after the hit, draw pulls it back; either way the spin is used up. */

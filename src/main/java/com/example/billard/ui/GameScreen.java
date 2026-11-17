@@ -1,5 +1,6 @@
 package com.example.billard.ui;
 
+import com.example.billard.audio.SoundOutput;
 import com.example.billard.model.Ball;
 import com.example.billard.model.BallKind;
 import com.example.billard.model.GamePhase;
@@ -7,6 +8,7 @@ import com.example.billard.model.GameSession;
 import com.example.billard.model.Player;
 import java.util.Comparator;
 import java.util.List;
+import java.util.random.RandomGenerator;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -41,6 +43,7 @@ public final class GameScreen extends BorderPane {
     private final HBox playerRow = new HBox(24);
     private final PowerMeter powerMeter;
     private final SpinPicker spinPicker;
+    private final SoundEffects sounds;
     private final CueBallFace spinFace = new CueBallFace(SPIN_BUTTON_FACE_SIZE, false);
     private final Button spinButton = new Button("Spin");
     private final StackPane gameOverOverlay = new StackPane();
@@ -50,11 +53,14 @@ public final class GameScreen extends BorderPane {
     private final AnimationTimer timer;
     private boolean wideLayout;
 
-    public GameScreen(GameSession session, Runnable onNewMatch, Runnable onMenu) {
+    public GameScreen(GameSession session, SoundOutput soundOutput, Runnable onNewMatch, Runnable onMenu) {
         this.session = session;
         this.gameCanvas = new GameCanvas(session);
         this.powerMeter = new PowerMeter(session::setPower);
         this.spinPicker = new SpinPicker(session, gameCanvas::requestFocus);
+        this.sounds = new SoundEffects(soundOutput, SoundBank.standard(), session.table().width(),
+                RandomGenerator.getDefault());
+        session.addPhysicsListener(sounds);
         this.timer = createTimer();
 
         setPadding(new Insets(28));
@@ -168,6 +174,7 @@ public final class GameScreen extends BorderPane {
                 if (previousNanos != 0) {
                     double elapsed = (nowNanos - previousNanos) / NANOS_PER_SECOND;
                     session.advance(Math.min(elapsed, MAX_FRAME_SECONDS));
+                    sounds.playQueuedClacks();
                 }
                 previousNanos = nowNanos;
                 gameCanvas.draw();
@@ -211,6 +218,7 @@ public final class GameScreen extends BorderPane {
             winnerLabel.setText(StatusText.winnerHeadline(session));
             reasonLabel.setText(StatusText.gameOverReason(session));
             gameOverOverlay.setVisible(true);
+            sounds.playFanfare();
             playAgainButton.requestFocus();
         }
     }

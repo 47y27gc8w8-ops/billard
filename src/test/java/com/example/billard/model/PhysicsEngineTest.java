@@ -12,12 +12,49 @@ class PhysicsEngineTest {
 
     private final Table table = Table.standard();
     private final List<Ball> pocketedBalls = new ArrayList<>();
+    private final List<Double> collisionSpeeds = new ArrayList<>();
+    private final List<Double> cushionSpeeds = new ArrayList<>();
+    private final List<Double> pocketSpeeds = new ArrayList<>();
     private final PhysicsEngine engine = new PhysicsEngine(table, new PhysicsListener() {
         @Override
-        public void onPocketed(Ball ball) {
+        public void onBallCollision(Ball first, Ball second, double impactSpeed) {
+            collisionSpeeds.add(impactSpeed);
+        }
+
+        @Override
+        public void onCushionHit(Ball ball, double impactSpeed) {
+            cushionSpeeds.add(impactSpeed);
+        }
+
+        @Override
+        public void onPocketed(Ball ball, double speed) {
             pocketedBalls.add(ball);
+            pocketSpeeds.add(speed);
         }
     });
+
+    @Test
+    void collisionReportsTheClosingSpeedBeforeTheHit() {
+        Ball cue = new Ball(0, new Vec2(300, 250));
+        Ball target = new Ball(1, new Vec2(500, 250));
+        cue.setVelocity(new Vec2(1000, 0));
+
+        engine.advance(List.of(cue, target), 0.25);
+
+        assertEquals(1, collisionSpeeds.size());
+        assertTrue(collisionSpeeds.get(0) > 850 && collisionSpeeds.get(0) <= 1000, "was " + collisionSpeeds);
+    }
+
+    @Test
+    void cushionHitReportsTheSpeedIntoTheCushionNotTheReboundSpeed() {
+        Ball ball = new Ball(1, new Vec2(900, 250));
+        ball.setVelocity(new Vec2(600, 0));
+
+        engine.advance(List.of(ball), 0.3);
+
+        assertEquals(1, cushionSpeeds.size());
+        assertTrue(cushionSpeeds.get(0) > 500 && cushionSpeeds.get(0) <= 600, "was " + cushionSpeeds);
+    }
 
     @Test
     void rollingBallComesToRestOnTheTable() {
@@ -121,6 +158,7 @@ class PhysicsEngineTest {
 
         assertTrue(ball.isPocketed());
         assertEquals(List.of(ball), pocketedBalls);
+        assertTrue(pocketSpeeds.get(0) > 0, "the speed is taken before the ball stops in the pocket");
         assertFalse(ball.isMoving());
     }
 

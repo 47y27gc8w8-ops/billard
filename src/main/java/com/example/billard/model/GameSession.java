@@ -20,6 +20,7 @@ public final class GameSession {
     private final Ball cueBall;
     private final Ball eightBall;
     private final ShotRecorder recorder = new ShotRecorder();
+    private final PhysicsListenerGroup listeners = new PhysicsListenerGroup();
     private final PhysicsEngine engine;
     private final EightBallMatch match = new EightBallMatch();
 
@@ -36,7 +37,13 @@ public final class GameSession {
         this.balls = RackFactory.standardRack(table);
         this.cueBall = balls.get(0);
         this.eightBall = balls.stream().filter(ball -> ball.kind() == BallKind.EIGHT).findFirst().orElseThrow();
-        this.engine = new PhysicsEngine(table, recorder);
+        this.listeners.add(recorder);
+        this.engine = new PhysicsEngine(table, listeners);
+    }
+
+    /** Also tells {@code listener} about cue strikes, collisions, cushion hits and pocketed balls. */
+    public void addPhysicsListener(PhysicsListener listener) {
+        listeners.add(listener);
     }
 
     public Table table() {
@@ -144,6 +151,7 @@ public final class GameSession {
         strikeCueBall();
         tipContact = TipContact.CENTER;
         phase = GamePhase.BALLS_MOVING;
+        listeners.onCueStruck(power);
     }
 
     private void strikeCueBall() {
