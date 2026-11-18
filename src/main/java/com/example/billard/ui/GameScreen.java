@@ -237,13 +237,14 @@ public final class GameScreen extends StackPane {
 
             @Override
             public void handle(long nowNanos) {
+                double elapsed = 0;
                 if (previousNanos != 0) {
-                    double elapsed = (nowNanos - previousNanos) / NANOS_PER_SECOND;
-                    session.advance(Math.min(elapsed, MAX_FRAME_SECONDS));
+                    elapsed = Math.min((nowNanos - previousNanos) / NANOS_PER_SECOND, MAX_FRAME_SECONDS);
+                    session.advance(elapsed);
                     sounds.playQueuedClacks();
                 }
                 previousNanos = nowNanos;
-                gameCanvas.draw();
+                gameCanvas.draw(elapsed);
                 refreshHud();
             }
         };

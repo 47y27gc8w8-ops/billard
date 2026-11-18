@@ -26,15 +26,26 @@ final class GameCanvas extends Pane {
     private static final double PLACEMENT_STEP = 8;
 
     private final GameSession session;
+    /** The table itself, which never changes during play: painted once, then again only after a resize. */
+    private final Canvas surface = new Canvas();
+    /** Balls, guide and cue, painted every frame over the surface. */
     private final Canvas canvas = new Canvas();
     private final TableRenderer tableRenderer;
+    private final PocketDrops pocketDrops;
+    private double surfaceWidth = -1;
+    private double surfaceHeight = -1;
+    private double surfacePixelsPerUnit = -1;
 
     GameCanvas(GameSession session) {
         this.session = session;
         this.tableRenderer = new TableRenderer(session.table());
-        getChildren().add(canvas);
-        canvas.widthProperty().bind(widthProperty());
-        canvas.heightProperty().bind(heightProperty());
+        this.pocketDrops = new PocketDrops(session.table());
+        session.addPhysicsListener(pocketDrops);
+        getChildren().addAll(surface, canvas);
+        for (Canvas layer : new Canvas[]{surface, canvas}) {
+            layer.widthProperty().bind(widthProperty());
+            layer.heightProperty().bind(heightProperty());
+        }
         setMinSize(0, 0);
         setPrefSize(0, 0);
         setFocusTraversable(true);
@@ -47,19 +58,44 @@ final class GameCanvas extends Pane {
         setOnKeyPressed(this::pressKey);
     }
 
-    void draw() {
+    /** @param elapsedSeconds time since the last frame, which moves balls that are dropping into pockets */
+    void draw(double elapsedSeconds) {
+        Viewport viewport = viewport();
+        double pixelsPerUnit = viewport.scale() * Viewport.outputScaleOf(this);
+        redrawSurfaceIfResized(viewport, pixelsPerUnit);
+        pocketDrops.advance(elapsedSeconds);
+
         GraphicsContext gc = canvas.getGraphicsContext2D();
         gc.setTransform(1, 0, 0, 1, 0, 0);
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc.save();
-        Viewport viewport = viewport();
         viewport.apply(gc);
-
-        double pixelsPerUnit = viewport.scale() * Viewport.outputScaleOf(this);
-        tableRenderer.drawSurface(gc, pixelsPerUnit);
+        pocketDrops.draw(gc, pixelsPerUnit);
         drawGuideIfAiming(gc);
         tableRenderer.drawBalls(gc, session.balls(), pixelsPerUnit);
         drawCueOrPlacementRing(gc);
+        gc.restore();
+    }
+
+    /**
+     * Repaints the table layer only when the pane's size or the display scale changed. The table's clipped rails,
+     * textures and soft shadows are by far the most expensive part of a frame.
+     */
+    private void redrawSurfaceIfResized(Viewport viewport, double pixelsPerUnit) {
+        double width = getWidth();
+        double height = getHeight();
+        if (width == surfaceWidth && height == surfaceHeight && pixelsPerUnit == surfacePixelsPerUnit) {
+            return;
+        }
+        surfaceWidth = width;
+        surfaceHeight = height;
+        surfacePixelsPerUnit = pixelsPerUnit;
+        GraphicsContext gc = surface.getGraphicsContext2D();
+        gc.setTransform(1, 0, 0, 1, 0, 0);
+        gc.clearRect(0, 0, surface.getWidth(), surface.getHeight());
+        gc.save();
+        viewport.apply(gc);
+        tableRenderer.drawSurface(gc, pixelsPerUnit);
         gc.restore();
     }
 

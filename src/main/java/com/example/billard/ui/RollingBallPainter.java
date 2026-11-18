@@ -5,14 +5,10 @@ import com.example.billard.model.BallKind;
 import com.example.billard.model.Orientation;
 import java.util.HashMap;
 import java.util.Map;
-import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Paints balls as turned spheres, so the stripe and number discs travel round as a ball rolls and disappear over
@@ -33,6 +29,11 @@ final class RollingBallPainter {
     /** The number fades out as its disc turns edge-on, between these facing values. */
     private static final double NUMBER_HIDDEN_FACING = 0.12;
     private static final double NUMBER_SHOWN_FACING = 0.4;
+    /**
+     * Above this facing the disc's centre sits within half a radius of the ball's centre, and the number spans
+     * under half a radius from there, so it stays inside the ball without a clip.
+     */
+    private static final double NUMBER_CLIP_FACING = 0.88;
     private static final int SAMPLES = 3;
 
     private final Map<Integer, TracedSurface> surfaces = new HashMap<>();
@@ -44,16 +45,19 @@ final class RollingBallPainter {
 
     /** The ball with shading, but without its shadow. */
     void paint(GraphicsContext gc, Ball ball, double radius, double pixelsPerUnit) {
-        int number = ball.number();
-        double cx = ball.position().x();
-        double cy = ball.position().y();
+        paint(gc, ball.number(), ball.orientation(), ball.position().x(), ball.position().y(), radius, pixelsPerUnit);
+    }
+
+    /** A ball given by its number and turn rather than as a {@link Ball}, for one that is no longer on the table. */
+    void paint(GraphicsContext gc, int number, Orientation orientation, double cx, double cy, double radius,
+               double pixelsPerUnit) {
         if (number == 0) {
             BallPainter.paintSphere(gc, 0, cx, cy, radius);
             return;
         }
-        double[] turn = ball.orientation().matrix();
+        double[] turn = orientation.matrix();
         int size = Math.max(4, (int) Math.ceil(radius * 2 * pixelsPerUnit));
-        WritableImage surface = surfaceOf(number, ball.orientation(), turn, size);
+        WritableImage surface = surfaceOf(number, orientation, turn, size);
         gc.drawImage(surface, cx - radius, cy - radius, radius * 2, radius * 2);
         paintNumber(gc, number, turn, cx, cy, radius);
         BallPainter.paintShading(gc, cx, cy, radius);
@@ -133,19 +137,21 @@ final class RollingBallPainter {
             return;
         }
         gc.save();
-        gc.beginPath();
-        gc.arc(cx, cy, radius, radius, 0, 360);
-        gc.closePath();
-        gc.clip();
+        // Clipping is costly, and a number facing mostly up cannot reach past the ball's rim, so only clip near the rim.
+        if (Math.abs(facing) < NUMBER_CLIP_FACING) {
+            gc.beginPath();
+            gc.arc(cx, cy, radius, radius, 0, 360);
+            gc.closePath();
+            gc.clip();
+        }
         gc.setGlobalAlpha(opacity);
         // Seen from outside, the far disc's frame is the near one turned half round the y axis, so x flips.
-        gc.transform(side * m[0], side * m[3], m[1], m[4],
-                cx + radius * side * m[2], cy + radius * side * m[5]);
+        // The origin goes to the middle of the disc's rim, which is where the white circle seen on screen is
+        // centred, not the top of the disc, which drifts toward the ball's edge as the disc turns away.
+        double rimDepth = radius * NUMBER_DISC_COS * side;
+        gc.transform(side * m[0], side * m[3], m[1], m[4], cx + rimDepth * m[2], cy + rimDepth * m[5]);
         gc.setFill(Palette.BALL_NUMBER_INK);
-        gc.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.BOLD, radius * NUMBER_SIZE));
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.setTextBaseline(VPos.CENTER);
-        gc.fillText(String.valueOf(number), 0, radius * 0.03);
+        BallNumber.fillCentred(gc, number, radius * NUMBER_SIZE, 0, 0);
         gc.restore();
     }
 

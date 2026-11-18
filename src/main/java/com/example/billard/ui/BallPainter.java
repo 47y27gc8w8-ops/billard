@@ -1,11 +1,7 @@
 package com.example.billard.ui;
 
 import com.example.billard.model.BallKind;
-import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.TextAlignment;
 
 /**
  * Draws one ball as a lit sphere: its cast shadow on the cloth, the painted body (solid, stripe band, number disc),
@@ -85,10 +81,7 @@ final class BallPainter {
         gc.setFill(Palette.CUE_BALL);
         fillCircle(gc, cx, cy, radius * NUMBER_DISC);
         gc.setFill(Palette.BALL_NUMBER_INK);
-        gc.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.BOLD, radius * NUMBER_SIZE));
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.setTextBaseline(VPos.CENTER);
-        gc.fillText(String.valueOf(number), cx, cy + radius * 0.03);
+        BallNumber.fillCentred(gc, number, radius * NUMBER_SIZE, cx, cy);
     }
 
     private static void fillCircle(GraphicsContext gc, double cx, double cy, double radius) {
