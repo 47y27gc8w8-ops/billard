@@ -1,11 +1,12 @@
 /*
  * Billard theme. Colours come from the Palette class as looked-up colours (-ground, -ink, -accent ...),
  * set on the scene root, so this file holds no hex values.
- * Flat fills only: no gradients, no shadows, no outlines except the keyboard focus ring.
+ * Lit like the table: a dark room with one lamp, smoked-wood panels lit from above, raised controls that cast
+ * a shadow and sink when pressed. Outlines only for the keyboard focus ring.
  */
 
 .root {
-    -fx-background-color: -ground;
+    -fx-background-color: radial-gradient(center 50% 42%, radius 75%, derive(-ground, 70%) 0%, -ground 62%, derive(-ground, -45%) 100%);
     -fx-font-family: "Segoe UI Variable Display", "Segoe UI", "Helvetica Neue", "Arial", sans-serif;
     -fx-font-size: 16px;
     -fx-text-fill: -ink;
@@ -61,51 +62,65 @@
 /* Sliders: a flat bar and a square accent thumb; the focus ring is an ink frame around the thumb. */
 
 .slider .track {
-    -fx-background-color: -panel-raised;
-    -fx-background-insets: 0;
-    -fx-background-radius: 0;
+    -fx-background-color: derive(-ground, -30%), linear-gradient(to bottom, rgba(0, 0, 0, 0.6), rgba(255, 255, 255, 0.05));
+    -fx-background-insets: 0, 0;
+    -fx-background-radius: 2;
     -fx-padding: 4;
 }
 
 .slider .thumb {
-    -fx-background-color: -accent;
+    -fx-background-color: linear-gradient(to bottom, derive(-accent, 30%), derive(-accent, -25%));
     -fx-background-insets: 0;
-    -fx-background-radius: 0;
+    -fx-background-radius: 2;
     -fx-padding: 11 7 11 7;
     -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 6, 0.2, 0, 2);
 }
 
 .slider .thumb:hover {
-    -fx-background-color: derive(-accent, 18%);
+    -fx-background-color: linear-gradient(to bottom, derive(-accent, 45%), derive(-accent, -10%));
 }
 
 .slider:focused .thumb {
-    -fx-background-color: -ink, -accent;
+    -fx-background-color: -ink, linear-gradient(to bottom, derive(-accent, 30%), derive(-accent, -25%));
     -fx-background-insets: -3, 0;
 }
 
-/* Buttons: flat, square, one fill. The primary action carries the accent. */
+/* Buttons: raised and lit from above, they cast a shadow and sink when pressed. The primary action carries the accent. */
 
 .button {
-    -fx-background-color: -panel-raised;
-    -fx-background-insets: 0;
-    -fx-background-radius: 0;
+    -fx-background-color:
+            rgba(0, 0, 0, 0.55),
+            linear-gradient(to bottom, derive(-panel-raised, 22%), derive(-panel-raised, -12%)),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 45%);
+    -fx-background-insets: 0 0 -1 0, 0, 1 1 0 1;
+    -fx-background-radius: 3;
     -fx-text-fill: -ink;
     -fx-font-size: 16px;
     -fx-font-weight: 700;
     -fx-padding: 14 22 14 22;
     -fx-border-color: transparent;
     -fx-border-width: 3;
-    -fx-border-radius: 0;
+    -fx-border-radius: 4;
+    -fx-border-insets: -3;
     -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 12, 0.15, 0, 4);
 }
 
 .button:hover {
-    -fx-background-color: derive(-panel-raised, 14%);
+    -fx-background-color:
+            rgba(0, 0, 0, 0.55),
+            linear-gradient(to bottom, derive(-panel-raised, 36%), derive(-panel-raised, 0%)),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 45%);
 }
 
 .button:pressed {
-    -fx-background-color: derive(-panel-raised, -10%);
+    -fx-background-color:
+            rgba(0, 0, 0, 0.55),
+            linear-gradient(to bottom, derive(-panel-raised, -25%), derive(-panel-raised, 2%)),
+            transparent;
+    -fx-translate-y: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 4, 0.1, 0, 1);
 }
 
 .button:focused {
@@ -113,16 +128,25 @@
 }
 
 .button.primary {
-    -fx-background-color: -accent;
+    -fx-background-color:
+            rgba(0, 0, 0, 0.55),
+            linear-gradient(to bottom, derive(-accent, 22%), derive(-accent, -22%)),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 50%);
     -fx-text-fill: -accent-ink;
 }
 
 .button.primary:hover {
-    -fx-background-color: derive(-accent, 18%);
+    -fx-background-color:
+            rgba(0, 0, 0, 0.55),
+            linear-gradient(to bottom, derive(-accent, 38%), derive(-accent, -8%)),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 50%);
 }
 
 .button.primary:pressed {
-    -fx-background-color: derive(-accent, -14%);
+    -fx-background-color:
+            rgba(0, 0, 0, 0.55),
+            linear-gradient(to bottom, derive(-accent, -30%), derive(-accent, -6%)),
+            transparent;
 }
 
 .button.primary:focused {
@@ -139,37 +163,48 @@
 
 /* Menu */
 
-.cloth-field {
-    -fx-background-color: -cloth;
-}
-
-.rail-strip {
-    -fx-background-color: -rail;
+.menu-side {
+    -fx-background-color: linear-gradient(to right, derive(-panel, -35%), derive(-panel, -10%));
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.85), 40, 0.25, 10, 0);
 }
 
 /* Match screen */
 
 .player-card {
-    -fx-background-color: -panel;
+    -fx-background-color:
+            linear-gradient(to bottom, derive(-panel, 12%), derive(-panel, -18%)),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 30%);
+    -fx-background-insets: 0, 1 1 0 1;
+    -fx-background-radius: 3;
     -fx-padding: 14 20 14 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 18, 0.2, 0, 6);
 }
 
 .player-card.active {
-    -fx-background-color: -panel-raised;
+    -fx-background-color:
+            linear-gradient(to bottom, derive(-panel-raised, 22%), derive(-panel-raised, -8%)),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 30%);
 }
 
 .turn-marker {
     -fx-background-color: transparent;
+    -fx-background-radius: 3 0 0 3;
 }
 
 .player-card.active .turn-marker {
-    -fx-background-color: -accent;
+    -fx-background-color: linear-gradient(to bottom, derive(-accent, 25%), derive(-accent, -25%));
+    -fx-effect: dropshadow(gaussian, rgba(111, 211, 247, 0.55), 12, 0.2, 0, 0);
 }
 
 .overlay {
-    -fx-background-color: rgba(12, 20, 17, 0.9);
+    -fx-background-color: rgba(5, 6, 6, 0.82);
 }
 
 .overlay-card {
-    -fx-background-color: -panel;
+    -fx-background-color:
+            linear-gradient(to bottom, derive(-panel, 14%), derive(-panel, -14%)),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 20%);
+    -fx-background-insets: 0, 1 1 0 1;
+    -fx-background-radius: 4;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 50, 0.3, 0, 16);
 }

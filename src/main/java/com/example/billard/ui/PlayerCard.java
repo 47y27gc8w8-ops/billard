@@ -9,6 +9,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.Stop;
 import javafx.scene.control.Label;
 
 /** One player's panel: name, group, whose turn it is, and the group's balls as they go down. */
@@ -74,9 +77,15 @@ final class PlayerCard extends HBox {
             if (slot < view.pottedNumbers().size()) {
                 BallPainter.paint(gc, view.pottedNumbers().get(slot), cx, cy, SLOT_RADIUS);
             } else {
-                gc.setFill(Palette.PANEL_RAISED);
-                gc.fillOval(cx - SLOT_RADIUS, cy - SLOT_RADIUS, SLOT_RADIUS * 2, SLOT_RADIUS * 2);
+                drawEmptySlot(gc, cx, cy);
             }
         }
+    }
+
+    /** A shallow cup in the panel, shaded at the top where its rim blocks the light. */
+    private static void drawEmptySlot(GraphicsContext gc, double cx, double cy) {
+        gc.setFill(new LinearGradient(0, cy - SLOT_RADIUS, 0, cy + SLOT_RADIUS, false, CycleMethod.NO_CYCLE,
+                new Stop(0, Lighting.black(0.75)), new Stop(1, Lighting.white(0.07))));
+        gc.fillOval(cx - SLOT_RADIUS, cy - SLOT_RADIUS, SLOT_RADIUS * 2, SLOT_RADIUS * 2);
     }
 }

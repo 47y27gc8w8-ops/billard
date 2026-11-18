@@ -57,6 +57,7 @@ final class CueBallFace extends Canvas {
         double radius = ballRadius();
         gc.setFill(Palette.CUE_BALL);
         gc.fillOval(centre() - radius, centre() - radius, radius * 2, radius * 2);
+        BallPainter.paintShading(gc, centre(), centre(), radius);
         if (detailed) {
             drawCrosshair(gc, radius);
         }

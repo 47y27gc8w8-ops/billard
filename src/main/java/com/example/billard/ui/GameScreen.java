@@ -46,6 +46,9 @@ public final class GameScreen extends StackPane {
     private final PlayerCard playerTwo = new PlayerCard(Player.TWO.label());
     private final Label statusLabel = new Label();
     private final HBox playerRow = new HBox(24);
+    private final HBox shotControls = new HBox(24);
+    private final HBox matchButtons = new HBox(14);
+    private final VBox bottomBar = new VBox(14);
     private final PowerMeter powerMeter;
     private final SpinPicker spinPicker;
     private final SoundEffects sounds;
@@ -73,16 +76,19 @@ public final class GameScreen extends StackPane {
 
         layout.setPadding(new Insets(28));
         layout.setCenter(new StackPane(gameCanvas, spinPicker, buildGameOverOverlay(onNewMatch, onMenu)));
+        // The overlays fit themselves to whatever room the table gets; they must not make the table area taller.
+        spinPicker.setMinSize(0, 0);
+        gameOverOverlay.setMinSize(0, 0);
         layout.setBottom(buildBottomBar(onNewMatch, onMenu));
         getChildren().addAll(layout, buildSettingsOverlay());
         configureTopBar();
         widthProperty().addListener((observable, before, width) -> {
             boolean wide = width.doubleValue() >= WIDE_LAYOUT_MIN_WIDTH;
             if (wide != wideLayout) {
-                arrangeTopBar(wide);
+                arrangeBars(wide);
             }
         });
-        arrangeTopBar(true);
+        arrangeBars(true);
     }
 
     public void start() {
@@ -104,9 +110,14 @@ public final class GameScreen extends StackPane {
         playerRow.setAlignment(Pos.CENTER_LEFT);
     }
 
+    private void arrangeBars(boolean wide) {
+        wideLayout = wide;
+        arrangeTopBar(wide);
+        arrangeBottomBar(wide);
+    }
+
     /** Wide windows put the status between the cards; narrow ones give it its own line beneath them. */
     private void arrangeTopBar(boolean wide) {
-        wideLayout = wide;
         playerRow.getChildren().clear();
         if (wide) {
             HBox.setHgrow(statusLabel, Priority.ALWAYS);
@@ -133,11 +144,21 @@ public final class GameScreen extends StackPane {
 
         configureSpinButton();
 
-        HBox controls = new HBox(24, powerMeter, spinButton, spacer(), settingsButton, menuButton, newMatch);
-        controls.setAlignment(Pos.CENTER_LEFT);
-        VBox bar = new VBox(14, controls, hint);
-        bar.setPadding(new Insets(20, 0, 0, 0));
-        return bar;
+        shotControls.getChildren().addAll(powerMeter, spinButton);
+        shotControls.setAlignment(Pos.CENTER_LEFT);
+        matchButtons.getChildren().addAll(settingsButton, menuButton, newMatch);
+        matchButtons.setAlignment(Pos.CENTER_LEFT);
+        bottomBar.getChildren().setAll(new HBox(), hint);
+        bottomBar.setPadding(new Insets(20, 0, 0, 0));
+        return bottomBar;
+    }
+
+    /** Wide windows keep the shot controls and match buttons on one line; narrow ones stack them. */
+    private void arrangeBottomBar(boolean wide) {
+        Region controls = wide
+                ? new HBox(24, shotControls, spacer(), matchButtons)
+                : new VBox(14, shotControls, matchButtons);
+        bottomBar.getChildren().set(0, controls);
     }
 
     private void configureSpinButton() {

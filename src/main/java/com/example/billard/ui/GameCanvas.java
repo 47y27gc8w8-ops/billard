@@ -52,11 +52,13 @@ final class GameCanvas extends Pane {
         gc.setTransform(1, 0, 0, 1, 0, 0);
         gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         gc.save();
-        viewport().apply(gc);
+        Viewport viewport = viewport();
+        viewport.apply(gc);
 
-        tableRenderer.drawSurface(gc);
+        double pixelsPerUnit = viewport.scale() * Viewport.outputScaleOf(this);
+        tableRenderer.drawSurface(gc, pixelsPerUnit);
         drawGuideIfAiming(gc);
-        tableRenderer.drawBalls(gc, session.balls());
+        tableRenderer.drawBalls(gc, session.balls(), pixelsPerUnit);
         drawCueOrPlacementRing(gc);
         gc.restore();
     }

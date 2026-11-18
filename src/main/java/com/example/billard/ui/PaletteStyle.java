@@ -16,9 +16,7 @@ final class PaletteStyle {
                 + declaration("ink-muted", Palette.INK_MUTED)
                 + declaration("accent", Palette.ACCENT)
                 + declaration("accent-ink", Palette.ACCENT_INK)
-                + declaration("danger", Palette.DANGER)
-                + declaration("cloth", Palette.CLOTH)
-                + declaration("rail", Palette.RAIL);
+                + declaration("danger", Palette.DANGER);
     }
 
     private static String declaration(String name, Color color) {

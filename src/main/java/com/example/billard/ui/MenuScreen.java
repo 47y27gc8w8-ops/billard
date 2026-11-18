@@ -7,16 +7,14 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
-/** Title screen: the name, a one-line pitch, the actions, and the rack on a field of cloth. */
+/** Title screen: the name, a one-line pitch, the actions, and the rack on the table under the lamp. */
 public final class MenuScreen extends HBox {
 
     private static final double TEXT_COLUMN_WIDTH = 480;
     private static final double TEXT_COLUMN_PADDING = 44;
-    private static final double RAIL_STRIP_WIDTH = 28;
 
     private final Button startButton = new Button("Start match");
     private final Button backButton = new Button("Back");
@@ -36,16 +34,12 @@ public final class MenuScreen extends HBox {
         textSide.setMaxWidth(TEXT_COLUMN_WIDTH);
         textSide.setPadding(new Insets(TEXT_COLUMN_PADDING));
 
-        Region railStrip = new Region();
-        railStrip.getStyleClass().add("rail-strip");
-        railStrip.setMinWidth(RAIL_STRIP_WIDTH);
+        textSide.getStyleClass().add("menu-side");
 
         RackArt art = new RackArt();
-        StackPane clothField = new StackPane(art);
-        clothField.getStyleClass().add("cloth-field");
-        HBox.setHgrow(clothField, Priority.ALWAYS);
+        HBox.setHgrow(art, Priority.ALWAYS);
 
-        getChildren().addAll(textSide, railStrip, clothField);
+        getChildren().addAll(textSide, art);
     }
 
     private VBox buildMainColumn(Runnable onStart, Runnable onQuit) {

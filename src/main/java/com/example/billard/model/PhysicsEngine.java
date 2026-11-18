@@ -58,7 +58,9 @@ public final class PhysicsEngine {
     }
 
     private void moveAndSlow(Ball ball) {
-        ball.setPosition(ball.position().plus(ball.velocity().times(FIXED_STEP)));
+        Vec2 travel = ball.velocity().times(FIXED_STEP);
+        ball.setPosition(ball.position().plus(travel));
+        turn(ball, travel);
         fadeSpin(ball);
         double speed = ball.velocity().length();
         if (speed == 0) {
@@ -70,6 +72,14 @@ public final class PhysicsEngine {
         } else {
             ball.setVelocity(ball.velocity().times(slowedSpeed / speed));
         }
+    }
+
+    /** Rolls the ball over the distance it just travelled and turns it on the spot by its sideways spin. */
+    private void turn(Ball ball, Vec2 travel) {
+        double radius = table.ballRadius();
+        ball.setOrientation(ball.orientation()
+                .rolled(travel, radius)
+                .spun(ball.sideSpin() * FIXED_STEP / radius));
     }
 
     private void fadeSpin(Ball ball) {

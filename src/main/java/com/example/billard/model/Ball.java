@@ -9,6 +9,7 @@ public final class Ball {
     private Vec2 velocity = Vec2.ZERO;
     private Vec2 rollSpin = Vec2.ZERO;
     private double sideSpin;
+    private Orientation orientation = Orientation.UPRIGHT;
     private boolean pocketed;
 
     public Ball(int number, Vec2 position) {
@@ -65,6 +66,15 @@ public final class Ball {
 
     public void setSideSpin(double sideSpin) {
         this.sideSpin = sideSpin;
+    }
+
+    /** How the ball is turned, which decides where its number and stripe show. */
+    public Orientation orientation() {
+        return orientation;
+    }
+
+    public void setOrientation(Orientation orientation) {
+        this.orientation = orientation;
     }
 
     /** Brings the ball to a halt and takes all spin off it. */
