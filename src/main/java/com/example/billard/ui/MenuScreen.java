@@ -5,6 +5,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -75,17 +76,28 @@ public final class MenuScreen extends HBox {
         VBox rules = new VBox(14,
                 rule("Aim", "Move the mouse, or use \u2190 \u2192. Hold Shift for fine steps."),
                 rule("Lock aim", "Right click fixes your aim so you can set the power. Right click again to aim anew."),
-                rule("Power","Scroll the wheel, use \u2191 \u2193, or click the power bar."),
-                rule("Shoot", "Left click or press Space."),
+                rule("Power", "Scroll the wheel, use \u2191 \u2193, or click the power bar."),
+                rule("Spin", "Press Spin and pick where the cue strikes the cue ball: low to draw it back, high to "
+                        + "follow through, left or right for side. Centre takes the spin off."),
+                rule("Shoot", "Left click, or press Space or Enter."),
+                rule("Ball in hand", "After a foul, move the cue ball with the mouse or the arrow keys, then click "
+                        + "or press Enter to place it."),
+                rule("Full screen", "Press F to switch full screen on or off."),
                 rule("Groups", "The first ball you pot on the open table decides your group: solids or stripes."),
                 rule("Win", "Clear your group, then pot the 8-ball. Pot it early and you lose."),
                 rule("Fouls", "Scratching, hitting the wrong ball first, or a shot where nothing is potted and no ball "
                         + "reaches a cushion gives your opponent ball in hand."));
 
+        ScrollPane scroller = new ScrollPane(rules);
+        scroller.setFitToWidth(true);
+        scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroller.getStyleClass().add("how-to-scroller");
+        VBox.setVgrow(scroller, Priority.ALWAYS);
+
         backButton.getStyleClass().add("primary");
         backButton.setOnAction(event -> showMain());
 
-        VBox column = new VBox(22, heading, rules, backButton);
+        VBox column = new VBox(22, heading, scroller, backButton);
         column.setAlignment(Pos.CENTER_LEFT);
         return column;
     }

@@ -168,6 +168,36 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.85), 40, 0.25, 10, 0);
 }
 
+/* How to play scrolls when the window is too short for every rule; the bar is a thin accent strip. */
+
+.how-to-scroller,
+.how-to-scroller > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.how-to-scroller .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 0 10;
+}
+
+.how-to-scroller .scroll-bar .increment-button,
+.how-to-scroller .scroll-bar .decrement-button {
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}
+
+.how-to-scroller .scroll-bar .track {
+    -fx-background-color: rgba(0, 0, 0, 0.35);
+    -fx-background-radius: 2;
+}
+
+.how-to-scroller .scroll-bar .thumb {
+    -fx-background-color: derive(-accent, -20%);
+    -fx-background-radius: 2;
+}
+
 /* Match screen */
 
 .player-card {
@@ -180,7 +210,7 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.7), 18, 0.2, 0, 6);
 }
 
-.player-card.active {
+.player-card:shooting {
     -fx-background-color:
             linear-gradient(to bottom, derive(-panel-raised, 22%), derive(-panel-raised, -8%)),
             linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 30%);
@@ -191,7 +221,7 @@
     -fx-background-radius: 3 0 0 3;
 }
 
-.player-card.active .turn-marker {
+.player-card:shooting .turn-marker {
     -fx-background-color: linear-gradient(to bottom, derive(-accent, 25%), derive(-accent, -25%));
     -fx-effect: dropshadow(gaussian, rgba(111, 211, 247, 0.55), 12, 0.2, 0, 0);
 }
