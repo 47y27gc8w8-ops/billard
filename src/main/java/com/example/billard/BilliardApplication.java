@@ -8,6 +8,7 @@ import com.example.billard.audio.SoundOutput;
 import com.example.billard.audio.VolumeSettings;
 import com.example.billard.model.GameSession;
 import com.example.billard.model.Table;
+import com.example.billard.ui.AppIcon;
 import com.example.billard.ui.GameAudio;
 import com.example.billard.ui.GameScreen;
 import com.example.billard.ui.MenuScreen;
@@ -57,6 +58,7 @@ public final class BilliardApplication extends Application {
         showMenu();
 
         stage.setTitle("Billard");
+        AppIcon.applyTo(stage);
         stage.setMinWidth(Math.min(MIN_WIDTH, width));
         stage.setMinHeight(Math.min(MIN_HEIGHT, height));
         stage.setScene(scene);

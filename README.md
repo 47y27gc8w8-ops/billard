@@ -1,3 +1,5 @@
+<img src="logo/billard.svg" alt="Billard logo: an 8-ball on green cloth" width="128">
+
 # Billard
 
 Eight-ball for two players at one table, written in JavaFX 21 (Java 21+).
@@ -24,6 +26,19 @@ and is covered by unit tests.
 ```
 
 builds a self-contained runtime image in `target/billard`, started with `target/billard/bin/billard`.
+
+## Logo
+
+The 8-ball logo is drawn in `logo/`: `billard.svg` for 48 px and up, `billard-small.svg` for 24 and 32 px,
+and `billard-tiny.svg`, snapped to whole pixels, for 16 px. `logo/billard.ico` is the Windows icon for
+installers and shortcuts, and `.idea/icon.svg` is the project icon in IntelliJ. After changing an SVG, run
+
+```
+python logo/render_icons.py
+```
+
+which uses headless Chrome or Edge to redraw the PNG window icons in
+`src/main/resources/com/example/billard/icon/` and the `.ico` (needs Pillow).
 
 ## Controls
 

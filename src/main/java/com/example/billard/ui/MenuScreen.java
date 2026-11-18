@@ -5,6 +5,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
@@ -15,6 +16,8 @@ public final class MenuScreen extends HBox {
 
     private static final double TEXT_COLUMN_WIDTH = 480;
     private static final double TEXT_COLUMN_PADDING = 44;
+    private static final double LOGO_SIZE = 88;
+    private static final double BRAND_GAP = 6;
 
     private final Button startButton = new Button("Start match");
     private final Button backButton = new Button("Back");
@@ -45,6 +48,7 @@ public final class MenuScreen extends HBox {
     private VBox buildMainColumn(Runnable onStart, Runnable onQuit) {
         Label title = new Label("Billard");
         title.getStyleClass().add("display");
+        VBox brand = new VBox(BRAND_GAP, new ImageView(AppIcon.scaledTo(LOGO_SIZE)), title);
         Label pitch = new Label("Eight-ball for two at one table. Pot your group, then the eight.");
         pitch.getStyleClass().add("lead");
         pitch.setWrapText(true);
@@ -59,7 +63,7 @@ public final class MenuScreen extends HBox {
         quit.setOnAction(event -> onQuit.run());
 
         VBox actions = new VBox(12, new HBox(12, startButton, howTo), new HBox(12, settings, quit));
-        VBox column = new VBox(28, title, pitch, actions);
+        VBox column = new VBox(28, brand, pitch, actions);
         column.setAlignment(Pos.CENTER_LEFT);
         return column;
     }
