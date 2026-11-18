@@ -18,6 +18,10 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -30,6 +34,7 @@ public final class BilliardApplication extends Application {
     private static final double MIN_WIDTH = 700;
     private static final double MIN_HEIGHT = 560;
     private static final double SCREEN_FILL = 0.94;
+    private static final KeyCombination FULL_SCREEN_TOGGLE = new KeyCodeCombination(KeyCode.F);
 
     private final StackPane screenHost = new StackPane();
     private SoundOutput mixer = SoundOutput.SILENT;
@@ -55,6 +60,7 @@ public final class BilliardApplication extends Application {
         stage.setMinWidth(Math.min(MIN_WIDTH, width));
         stage.setMinHeight(Math.min(MIN_HEIGHT, height));
         stage.setScene(scene);
+        enableFullScreenToggle(stage, scene);
         stage.show();
         music.start();
     }
@@ -66,6 +72,21 @@ public final class BilliardApplication extends Application {
             music.close();
         }
         mixer.close();
+    }
+
+    /**
+     * F switches full screen on and off from any screen. Escape is left to the game's own overlays, so it no
+     * longer leaves full screen as well.
+     */
+    private static void enableFullScreenToggle(Stage stage, Scene scene) {
+        stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+        stage.setFullScreenExitHint("Press F to leave full screen");
+        scene.addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (FULL_SCREEN_TOGGLE.match(event)) {
+                stage.setFullScreen(!stage.isFullScreen());
+                event.consume();
+            }
+        });
     }
 
     private void showMenu() {
