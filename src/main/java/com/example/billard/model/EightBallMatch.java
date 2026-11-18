@@ -44,8 +44,12 @@ public final class EightBallMatch {
         boolean eightOnBreak = breakShot && report.pocketedEight();
         breakShot = false;
 
-        Optional<Player> winner = eightOnBreak ? Optional.empty() : decideWinner(report, shooter, shootingAtEight, foul);
-        Optional<BallKind> assignedGroup = winner.isPresent() ? Optional.empty() : assignGroupIfOpen(report, shooter, foul);
+        Optional<Player> winner = eightOnBreak
+                ? Optional.empty()
+                : decideWinner(report, shooter, shootingAtEight, foul);
+        Optional<BallKind> assignedGroup = winner.isPresent()
+                ? Optional.empty()
+                : assignGroupIfOpen(report, shooter, foul);
         countPottedBalls(report);
 
         currentPlayer = keepsTurn(report, shooter, foul, winner) ? shooter : shooter.opponent();

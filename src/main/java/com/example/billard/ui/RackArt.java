@@ -56,7 +56,8 @@ final class RackArt extends Pane {
         double radius = Math.min(width * RADIUS_SHARE_OF_WIDTH, height * RADIUS_SHARE_OF_HEIGHT);
         List<Ball> balls = arrangeBalls(width, height, radius);
         balls.forEach(ball -> BallPainter.paintShadow(gc, ball.position().x(), ball.position().y(), radius));
-        balls.forEach(ball -> BallPainter.paintSphere(gc, ball.number(), ball.position().x(), ball.position().y(), radius));
+        balls.forEach(ball ->
+                BallPainter.paintSphere(gc, ball.number(), ball.position().x(), ball.position().y(), radius));
         CueRenderer.drawCue(gc, balls.get(0).position(), 0, CUE_POWER, radius);
     }
 

@@ -63,7 +63,10 @@ final class FeltTexture {
         }
     }
 
-    /** Short strokes at random angles, most lighter and some darker, wrapped at the edges so the tile stays seamless. */
+    /**
+     * Short strokes at random angles, most lighter and some darker, wrapped at the edges so the tile stays
+     * seamless.
+     */
     private static void addFibres(double[] light, SplittableRandom random) {
         int count = (int) (SIZE * SIZE * FIBRES_PER_PIXEL);
         for (int i = 0; i < count; i++) {
@@ -71,7 +74,8 @@ final class FeltTexture {
             double y = random.nextDouble(SIZE);
             double angle = random.nextDouble(Math.PI);
             int length = random.nextInt(MIN_FIBRE_LENGTH, MAX_FIBRE_LENGTH + 1);
-            double strength = FIBRE_LIGHT * (0.5 + random.nextDouble()) * (random.nextDouble() < DARK_FIBRE_SHARE ? -0.7 : 1);
+            double strength = FIBRE_LIGHT * (0.5 + random.nextDouble())
+                    * (random.nextDouble() < DARK_FIBRE_SHARE ? -0.7 : 1);
             for (int step = 0; step < length; step++) {
                 int px = Math.floorMod((int) (x + Math.cos(angle) * step), SIZE);
                 int py = Math.floorMod((int) (y + Math.sin(angle) * step), SIZE);

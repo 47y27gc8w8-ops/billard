@@ -2,9 +2,11 @@ package com.example.billard.ui;
 
 import com.example.billard.model.BallKind;
 import java.util.List;
+import javafx.css.PseudoClass;
 import javafx.geometry.Insets;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -12,7 +14,6 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.CycleMethod;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
-import javafx.scene.control.Label;
 
 /** One player's panel: name, group, whose turn it is, and the group's balls as they go down. */
 final class PlayerCard extends HBox {
@@ -20,6 +21,9 @@ final class PlayerCard extends HBox {
     /** Everything the card shows. Equal views mean nothing needs redrawing. */
     record View(boolean active, String groupText, BallKind group, List<Integer> pottedNumbers) {
     }
+
+    /** Set while it is this player's turn; the stylesheet lights the card and its turn marker. */
+    static final PseudoClass SHOOTING = PseudoClass.getPseudoClass("shooting");
 
     private static final int SLOTS = 7;
     private static final double SLOT_WIDTH = 30;
@@ -55,13 +59,10 @@ final class PlayerCard extends HBox {
             return;
         }
         shown = view;
-        if (view.active()) {
-            getStyleClass().add("active");
-        } else {
-            getStyleClass().remove("active");
-        }
+        pseudoClassStateChanged(SHOOTING, view.active());
         stateLabel.setText(view.active() ? view.groupText() + " \u00B7 shooting" : view.groupText());
-        setAccessibleText(playerName + ", " + stateLabel.getText() + ", " + view.pottedNumbers().size() + " balls potted");
+        setAccessibleText(
+                playerName + ", " + stateLabel.getText() + ", " + view.pottedNumbers().size() + " balls potted");
         drawStrip(view);
     }
 

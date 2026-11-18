@@ -47,10 +47,7 @@ final class PocketDrops implements PhysicsListener {
             double cy = frame.centre().y();
             double r = frame.radius();
             gc.save();
-            gc.beginPath();
-            gc.arc(drop.pocket().x(), drop.pocket().y(), frame.clipRadius(), frame.clipRadius(), 0, 360);
-            gc.closePath();
-            gc.clip();
+            BallPainter.clipToCircle(gc, drop.pocket().x(), drop.pocket().y(), frame.clipRadius());
             painter.paint(gc, drop.number(), frame.orientation(), cx, cy, r, pixelsPerUnit);
             // Down in the hole the lamp no longer reaches it: it fades into the pocket's own darkness.
             gc.setGlobalAlpha(frame.darkness());

@@ -3,6 +3,7 @@ package com.example.billard.ui;
 import com.example.billard.model.Ball;
 import com.example.billard.model.Table;
 import com.example.billard.model.Vec2;
+import java.util.ArrayList;
 import java.util.List;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
@@ -92,31 +93,30 @@ final class TableRenderer {
 
     /** Four mitred walnut rails, each with its grain running along it, varnished and rounded by light. */
     private void drawRails(GraphicsContext gc, double pixelsPerUnit) {
-        double r = RAIL_WIDTH;
-        double c = CUSHION_WIDTH;
         Paint along = texture(WoodTexture.alongTile(), pixelsPerUnit);
         Paint across = texture(WoodTexture.acrossTile(), pixelsPerUnit);
-
-        drawRail(gc, along, new double[]{-r, width + r, width + c, -c}, new double[]{-r, -r, -c, -c},
-                0, -r, 0, -c);
-        drawRail(gc, along, new double[]{-r, -c, width + c, width + r}, new double[]{height + r, height + c, height + c, height + r},
-                0, height + r, 0, height + c);
-        drawRail(gc, across, new double[]{-r, -c, -c, -r}, new double[]{-r, -c, height + c, height + r},
-                -r, 0, -c, 0);
-        drawRail(gc, across, new double[]{width + r, width + c, width + c, width + r}, new double[]{-r, -c, height + c, height + r},
-                width + r, 0, width + c, 0);
+        for (Edge edge : Edge.values()) {
+            drawRail(gc, edge.isLong() ? along : across, edge);
+        }
         drawMitreJoints(gc);
     }
 
-    private void drawRail(GraphicsContext gc, Paint wood, double[] xs, double[] ys,
-                          double outerX, double outerY, double innerX, double innerY) {
+    /** One rail: from its outer edge to the back of the cushion, both ends mitred where it meets the next rail. */
+    private void drawRail(GraphicsContext gc, Paint wood, Edge edge) {
+        double r = RAIL_WIDTH;
+        double c = CUSHION_WIDTH;
+        double length = edge.lengthOn(width, height);
+        Polygon rail = Polygon.of(
+                point(edge, -r, r), point(edge, length + r, r), point(edge, length + c, c), point(edge, -c, c));
+        Vec2 outer = point(edge, 0, r);
+        Vec2 inner = point(edge, 0, c);
         gc.save();
         roundedOutline(gc, 0, RAIL_CORNER_RADIUS, 0, 0);
         gc.clip();
         gc.setFill(wood);
-        gc.fillPolygon(xs, ys, 4);
-        gc.setFill(railProfile(outerX, outerY, innerX, innerY));
-        gc.fillPolygon(xs, ys, 4);
+        rail.fill(gc);
+        gc.setFill(railProfile(outer.x(), outer.y(), inner.x(), inner.y()));
+        rail.fill(gc);
         gc.restore();
     }
 
@@ -183,51 +183,60 @@ final class TableRenderer {
     /** The six cushions as trapezoids, wider at the rail, cut back at each pocket into its jaws. */
     private void drawCushions(GraphicsContext gc, double pixelsPerUnit) {
         Paint cloth = texture(FeltTexture.clothTile(), pixelsPerUnit);
-        double sideJaw = width / 2 - SIDE_JAW_GAP;
-        for (Edge edge : Edge.values()) {
-            double length = edge.isLong() ? width : height;
-            if (edge.isLong()) {
-                drawCushion(gc, cloth, edge, CORNER_JAW_START, CORNER_JAW_CUT, sideJaw, SIDE_JAW_CUT);
-                drawCushion(gc, cloth, edge, length - sideJaw, SIDE_JAW_CUT, length - CORNER_JAW_START, CORNER_JAW_CUT);
-            } else {
-                drawCushion(gc, cloth, edge, CORNER_JAW_START, CORNER_JAW_CUT, length - CORNER_JAW_START, CORNER_JAW_CUT);
-            }
+        for (Cushion cushion : cushions()) {
+            drawCushion(gc, cloth, cushion);
         }
     }
 
-    private void drawCushion(GraphicsContext gc, Paint cloth, Edge edge,
-                             double start, double startCut, double end, double endCut) {
-        double[][] corners = {
-                {start, 0}, {end, 0}, {end + endCut, CUSHION_WIDTH}, {start - startCut, CUSHION_WIDTH}};
-        double[] xs = new double[4];
-        double[] ys = new double[4];
-        for (int i = 0; i < 4; i++) {
-            Vec2 point = edge.toTable(corners[i][0], corners[i][1], width, height);
-            xs[i] = point.x();
-            ys[i] = point.y();
+    /** Two cushions on each long rail, split by the side pocket, and one on each short rail. */
+    private List<Cushion> cushions() {
+        double sideJaw = width / 2 - SIDE_JAW_GAP;
+        List<Cushion> cushions = new ArrayList<>();
+        for (Edge edge : Edge.values()) {
+            double length = edge.lengthOn(width, height);
+            Jaw first = new Jaw(CORNER_JAW_START, CORNER_JAW_CUT);
+            Jaw last = new Jaw(length - CORNER_JAW_START, CORNER_JAW_CUT);
+            if (edge.isLong()) {
+                cushions.add(new Cushion(edge, first, new Jaw(sideJaw, SIDE_JAW_CUT)));
+                cushions.add(new Cushion(edge, new Jaw(length - sideJaw, SIDE_JAW_CUT), last));
+            } else {
+                cushions.add(new Cushion(edge, first, last));
+            }
         }
+        return cushions;
+    }
+
+    private void drawCushion(GraphicsContext gc, Paint cloth, Cushion cushion) {
+        Edge edge = cushion.edge();
+        double start = cushion.start().at();
+        double end = cushion.end().at();
+        Polygon outline = Polygon.of(
+                point(edge, start, 0),
+                point(edge, end, 0),
+                point(edge, end + cushion.end().cut(), CUSHION_WIDTH),
+                point(edge, start - cushion.start().cut(), CUSHION_WIDTH));
         gc.setFill(cloth);
-        gc.fillPolygon(xs, ys, 4);
+        outline.fill(gc);
 
         double middle = (start + end) / 2;
-        Vec2 nose = edge.toTable(middle, 0, width, height);
-        Vec2 back = edge.toTable(middle, CUSHION_WIDTH, width, height);
+        Vec2 nose = point(edge, middle, 0);
+        Vec2 back = point(edge, middle, CUSHION_WIDTH);
         gc.setFill(new LinearGradient(nose.x(), nose.y(), back.x(), back.y(), false, CycleMethod.NO_CYCLE,
                 new Stop(0, Lighting.black(0.35)),
                 new Stop(0.1, Lighting.white(0.12)),
                 new Stop(0.3, Lighting.white(0.03)),
                 new Stop(0.75, Lighting.black(0.2)),
                 new Stop(1, Lighting.black(0.55))));
-        gc.fillPolygon(xs, ys, 4);
+        outline.fill(gc);
     }
 
     /** The cushions keep lamp light off the cloth right beside them. */
     private void drawCushionOcclusion(GraphicsContext gc) {
         for (Edge edge : Edge.values()) {
-            double length = edge.isLong() ? width : height;
-            Vec2 from = edge.toTable(0, 0, width, height);
-            Vec2 to = edge.toTable(0, -OCCLUSION_DEPTH, width, height);
-            Vec2 far = edge.toTable(length, -OCCLUSION_DEPTH, width, height);
+            double length = edge.lengthOn(width, height);
+            Vec2 from = point(edge, 0, 0);
+            Vec2 to = point(edge, 0, -OCCLUSION_DEPTH);
+            Vec2 far = point(edge, length, -OCCLUSION_DEPTH);
             gc.setFill(new LinearGradient(from.x(), from.y(), to.x(), to.y(), false, CycleMethod.NO_CYCLE,
                     new Stop(0, Lighting.black(0.38)), new Stop(1, Color.TRANSPARENT)));
             gc.fillRect(Math.min(from.x(), far.x()), Math.min(from.y(), far.y()),
@@ -295,6 +304,11 @@ final class TableRenderer {
 
     // ---- Helpers ----
 
+    /** The table point {@code along} an edge and {@code depth} out from the cloth into the rail. */
+    private Vec2 point(Edge edge, double along, double depth) {
+        return edge.toTable(along, depth, width, height);
+    }
+
     /** A texture tiled in table units so that one texel covers one device pixel. */
     static Paint texture(Image tile, double pixelsPerUnit) {
         return new ImagePattern(tile, 0, 0, tile.getWidth() / pixelsPerUnit, tile.getHeight() / pixelsPerUnit, false);
@@ -315,6 +329,32 @@ final class TableRenderer {
         gc.closePath();
     }
 
+    /** Where a cushion ends along its edge, and how far its jaw is cut back from there at the rail. */
+    private record Jaw(double at, double cut) {
+    }
+
+    /** One cushion: the stretch of an edge between two pocket jaws. */
+    private record Cushion(Edge edge, Jaw start, Jaw end) {
+    }
+
+    /** A closed outline, ready to fill. */
+    private record Polygon(double[] xs, double[] ys) {
+
+        static Polygon of(Vec2... corners) {
+            double[] xs = new double[corners.length];
+            double[] ys = new double[corners.length];
+            for (int i = 0; i < corners.length; i++) {
+                xs[i] = corners[i].x();
+                ys[i] = corners[i].y();
+            }
+            return new Polygon(xs, ys);
+        }
+
+        void fill(GraphicsContext gc) {
+            gc.fillPolygon(xs, ys, xs.length);
+        }
+    }
+
     /**
      * The four cushion lines, each with its own frame: {@code along} runs the length of the edge and {@code depth}
      * runs outward from the cloth into the rail.
@@ -324,6 +364,10 @@ final class TableRenderer {
 
         boolean isLong() {
             return this == TOP || this == BOTTOM;
+        }
+
+        double lengthOn(double width, double height) {
+            return isLong() ? width : height;
         }
 
         Vec2 toTable(double along, double depth, double width, double height) {

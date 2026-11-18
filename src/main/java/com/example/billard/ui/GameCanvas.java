@@ -3,6 +3,7 @@ package com.example.billard.ui;
 import com.example.billard.model.GamePhase;
 import com.example.billard.model.GameSession;
 import com.example.billard.model.Vec2;
+import java.util.function.Consumer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
@@ -15,7 +16,8 @@ import javafx.scene.layout.Pane;
  * The table view. Draws the session each frame and translates mouse and keyboard input into session calls.
  *
  * <p>Controls: mouse or left/right arrows aim (Shift for fine steps), right click locks or unlocks the aim,
- * wheel or up/down arrows set power, click or Space shoots. While placing the cue ball the mouse or arrows move it and click or Enter confirms.
+ * wheel or up/down arrows set power, click or Space shoots. While placing the cue ball the mouse or arrows move it
+ * and click or Enter confirms.
  */
 final class GameCanvas extends Pane {
 
@@ -64,17 +66,12 @@ final class GameCanvas extends Pane {
         double pixelsPerUnit = viewport.scale() * Viewport.outputScaleOf(this);
         redrawSurfaceIfResized(viewport, pixelsPerUnit);
         pocketDrops.advance(elapsedSeconds);
-
-        GraphicsContext gc = canvas.getGraphicsContext2D();
-        gc.setTransform(1, 0, 0, 1, 0, 0);
-        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        gc.save();
-        viewport.apply(gc);
-        pocketDrops.draw(gc, pixelsPerUnit);
-        drawGuideIfAiming(gc);
-        tableRenderer.drawBalls(gc, session.balls(), pixelsPerUnit);
-        drawCueOrPlacementRing(gc);
-        gc.restore();
+        paintLayer(canvas, viewport, gc -> {
+            pocketDrops.draw(gc, pixelsPerUnit);
+            drawGuideIfAiming(gc);
+            tableRenderer.drawBalls(gc, session.balls(), pixelsPerUnit);
+            drawCueOrPlacementRing(gc);
+        });
     }
 
     /**
@@ -90,18 +87,24 @@ final class GameCanvas extends Pane {
         surfaceWidth = width;
         surfaceHeight = height;
         surfacePixelsPerUnit = pixelsPerUnit;
-        GraphicsContext gc = surface.getGraphicsContext2D();
+        paintLayer(surface, viewport, gc -> tableRenderer.drawSurface(gc, pixelsPerUnit));
+    }
+
+    /** Wipes {@code layer} and lets {@code painter} draw on it in table coordinates. */
+    private static void paintLayer(Canvas layer, Viewport viewport, Consumer<GraphicsContext> painter) {
+        GraphicsContext gc = layer.getGraphicsContext2D();
         gc.setTransform(1, 0, 0, 1, 0, 0);
-        gc.clearRect(0, 0, surface.getWidth(), surface.getHeight());
+        gc.clearRect(0, 0, layer.getWidth(), layer.getHeight());
         gc.save();
         viewport.apply(gc);
-        tableRenderer.drawSurface(gc, pixelsPerUnit);
+        painter.accept(gc);
         gc.restore();
     }
 
     private void drawGuideIfAiming(GraphicsContext gc) {
         if (session.phase() == GamePhase.AIMING) {
-            CueRenderer.drawGuide(gc, session.cueBall().position(), session.aimPrediction(), session.table().ballRadius());
+            double radius = session.table().ballRadius();
+            CueRenderer.drawGuide(gc, session.cueBall().position(), session.aimPrediction(), radius);
         }
     }
 
@@ -147,8 +150,8 @@ final class GameCanvas extends Pane {
     private void pressKey(KeyEvent event) {
         boolean handled = true;
         switch (event.getCode()) {
-            case LEFT -> nudge(-1, event.isShiftDown());
-            case RIGHT -> nudge(1, event.isShiftDown());
+            case LEFT -> nudgeHorizontally(-1, aimStepFor(event));
+            case RIGHT -> nudgeHorizontally(1, aimStepFor(event));
             case UP -> nudgeVertically(1);
             case DOWN -> nudgeVertically(-1);
             case SPACE, ENTER -> commitAction();
@@ -168,12 +171,18 @@ final class GameCanvas extends Pane {
         }
     }
 
-    private void nudge(int direction, boolean fine) {
+    /** Left and right turn the aim by {@code aimStep} while aiming and move the cue ball while placing it. */
+    private void nudgeHorizontally(int direction, double aimStep) {
         if (session.phase() == GamePhase.PLACING_CUE) {
             session.moveCueBallBy(new Vec2(direction * PLACEMENT_STEP, 0));
         } else {
-            session.rotateAim(direction * (fine ? FINE_AIM_STEP : AIM_STEP));
+            session.rotateAim(direction * aimStep);
         }
+    }
+
+    /** Shift turns the aim in fine steps. */
+    private static double aimStepFor(KeyEvent event) {
+        return event.isShiftDown() ? FINE_AIM_STEP : AIM_STEP;
     }
 
     private void commitAction() {

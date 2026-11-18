@@ -12,9 +12,13 @@ final class BallPainter {
     private static final double SHADOW_REACH = 1.28;
     private static final double SHADOW_ALPHA = 0.78;
     private static final double CONTACT_ALPHA = 0.55;
-    private static final double STRIPE_HALF_HEIGHT = 0.56;
-    private static final double NUMBER_DISC = 0.54;
-    private static final double NUMBER_SIZE = 0.72;
+    /** Half the stripe band's height on a stripe ball, as a share of the radius. */
+    static final double STRIPE_HALF_HEIGHT = 0.56;
+    /** Radius of the white number disc, as a share of the ball's radius. */
+    static final double NUMBER_DISC = 0.54;
+    /** Font size of the number, as a share of the ball's radius. */
+    static final double NUMBER_SIZE = 0.72;
+
     private static final double SPECULAR_OFFSET_X = 0.36;
     private static final double SPECULAR_OFFSET_Y = 0.42;
     private static final double SPECULAR_SIZE = 0.22;
@@ -43,7 +47,8 @@ final class BallPainter {
         Lighting.fillSoftShadow(gc,
                 cx + radius * Lighting.SHADOW_DX, cy + radius * Lighting.SHADOW_DY,
                 radius * SHADOW_REACH, radius * SHADOW_REACH * 0.92, SHADOW_ALPHA);
-        Lighting.fillSoftShadow(gc, cx + radius * 0.08, cy + radius * 0.12, radius * 1.04, radius * 1.04, CONTACT_ALPHA);
+        Lighting.fillSoftShadow(gc,
+                cx + radius * 0.08, cy + radius * 0.12, radius * 1.04, radius * 1.04, CONTACT_ALPHA);
     }
 
     /** Shading and reflection only, for a sphere whose body is already painted. */
@@ -67,10 +72,7 @@ final class BallPainter {
         gc.setFill(Palette.CUE_BALL);
         fillCircle(gc, cx, cy, radius);
         gc.save();
-        gc.beginPath();
-        gc.arc(cx, cy, radius, radius, 0, 360);
-        gc.closePath();
-        gc.clip();
+        clipToCircle(gc, cx, cy, radius);
         gc.setFill(Palette.ballColor(number));
         double bandHeight = radius * STRIPE_HALF_HEIGHT * 2;
         gc.fillRect(cx - radius, cy - bandHeight / 2, radius * 2, bandHeight);
@@ -86,5 +88,13 @@ final class BallPainter {
 
     private static void fillCircle(GraphicsContext gc, double cx, double cy, double radius) {
         gc.fillOval(cx - radius, cy - radius, radius * 2, radius * 2);
+    }
+
+    /** Limits drawing to a circle until the caller restores {@code gc}; save it first. */
+    static void clipToCircle(GraphicsContext gc, double cx, double cy, double radius) {
+        gc.beginPath();
+        gc.arc(cx, cy, radius, radius, 0, 360);
+        gc.closePath();
+        gc.clip();
     }
 }

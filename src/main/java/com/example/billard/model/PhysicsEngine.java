@@ -21,6 +21,19 @@ public final class PhysicsEngine {
     private static final double CUSHION_GRIP = 0.3;
     private static final double CUSHION_SIDE_SPIN_RETENTION = 0.5;
     private static final int MAX_STEPS_PER_ADVANCE = 60;
+    /**
+     * Clockwise english runs one way along the end cushions (left and right) and the other way along the long ones,
+     * as seen from each cushion's own side.
+     */
+    private static final double END_CUSHION_KICK = 1;
+    private static final double LONG_CUSHION_KICK = -1;
+
+    /**
+     * Where a ball ends up across one axis after meeting a cushion there: its position and speed along the axis,
+     * the speed english adds along the cushion (across the other axis), and how hard it hit (0 if it did not).
+     */
+    private record Bounce(double position, double velocity, double sideKick, double impactSpeed) {
+    }
 
     private final Table table;
     private final PhysicsListener listener;
@@ -100,42 +113,46 @@ public final class PhysicsEngine {
         return false;
     }
 
+    /**
+     * Keeps the ball inside the cushions and bounces it off any it is moving into. English pushes the ball along
+     * the cushion it hits, which is across the other axis: a bounce in x kicks the ball in y and the other way round.
+     */
     private void bounceOffCushions(Ball ball) {
-        double radius = table.ballRadius();
-        double x = ball.position().x();
-        double y = ball.position().y();
-        double vx = ball.velocity().x();
-        double vy = ball.velocity().y();
-        double sideKickX = 0;
-        double sideKickY = 0;
-        double impactSpeed = 0;
-
-        if (x < radius || x > table.width() - radius) {
-            boolean movingIntoWall = (x < radius) == (vx < 0) && vx != 0;
-            double wallSign = x < radius ? -1 : 1;
-            x = Math.max(radius, Math.min(table.width() - radius, x));
-            if (movingIntoWall) {
-                sideKickY = wallSign * englishKick(ball, vx);
-                impactSpeed = Math.abs(vx);
-                vx = -vx * CUSHION_RESTITUTION;
-            }
+        if (table.containsCenter(ball.position())) {
+            return;
         }
-        if (y < radius || y > table.height() - radius) {
-            boolean movingIntoWall = (y < radius) == (vy < 0) && vy != 0;
-            double wallSign = y < radius ? -1 : 1;
-            y = Math.max(radius, Math.min(table.height() - radius, y));
-            if (movingIntoWall) {
-                sideKickX = -wallSign * englishKick(ball, vy);
-                impactSpeed = Math.max(impactSpeed, Math.abs(vy));
-                vy = -vy * CUSHION_RESTITUTION;
-            }
-        }
-        ball.setPosition(new Vec2(x, y));
-        ball.setVelocity(new Vec2(vx + sideKickX, vy + sideKickY));
+        Bounce acrossX = bounceAlong(ball, ball.position().x(), ball.velocity().x(), table.width(), END_CUSHION_KICK);
+        Bounce acrossY = bounceAlong(ball, ball.position().y(), ball.velocity().y(), table.height(), LONG_CUSHION_KICK);
+        ball.setPosition(new Vec2(acrossX.position(), acrossY.position()));
+        ball.setVelocity(new Vec2(acrossX.velocity() + acrossY.sideKick(), acrossY.velocity() + acrossX.sideKick()));
+        double impactSpeed = Math.max(acrossX.impactSpeed(), acrossY.impactSpeed());
         if (impactSpeed > 0) {
             ball.setSideSpin(ball.sideSpin() * CUSHION_SIDE_SPIN_RETENTION);
             listener.onCushionHit(ball, impactSpeed);
         }
+    }
+
+    /**
+     * One axis against its two cushions, at 0 and {@code extent}.
+     *
+     * @param kickSign which way english kicks along this axis's cushions: {@link #END_CUSHION_KICK} or
+     *                 {@link #LONG_CUSHION_KICK}
+     */
+    private Bounce bounceAlong(Ball ball, double position, double velocity, double extent, double kickSign) {
+        double radius = table.ballRadius();
+        boolean pastNearCushion = position < radius;
+        boolean pastFarCushion = position > extent - radius;
+        if (!pastNearCushion && !pastFarCushion) {
+            return new Bounce(position, velocity, 0, 0);
+        }
+        double inside = Math.max(radius, Math.min(extent - radius, position));
+        boolean movingIntoCushion = pastNearCushion == (velocity < 0) && velocity != 0;
+        if (!movingIntoCushion) {
+            return new Bounce(inside, velocity, 0, 0);
+        }
+        double wallSign = pastNearCushion ? -1 : 1;
+        double sideKick = kickSign * wallSign * englishKick(ball, velocity);
+        return new Bounce(inside, -velocity * CUSHION_RESTITUTION, sideKick, Math.abs(velocity));
     }
 
     /**

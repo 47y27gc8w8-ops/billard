@@ -15,8 +15,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -25,8 +23,9 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 /**
- * The match screen: player cards and status on top, the table in the middle, power and controls below. The
- * settings card opens over all of it.
+ * The match screen: player cards and status on top, the table in the middle, power and controls below. Runs the
+ * frame loop that advances the match and keeps the screen in step with it. The settings card opens over all of it;
+ * balls keep rolling meanwhile.
  */
 public final class GameScreen extends StackPane {
 
@@ -36,8 +35,8 @@ public final class GameScreen extends StackPane {
     private static final double CARD_WIDTH = 250;
     private static final double SPIN_BUTTON_FACE_SIZE = 40;
     private static final String CONTROLS_HINT =
-            "Aim: mouse or \u2190 \u2192 (Shift for fine)     Lock aim: right click     Power: wheel or \u2191 \u2193     "
-                    + "Spin: click the cue ball     Shoot: click or Space";
+            "Aim: mouse or \u2190 \u2192 (Shift for fine)     Lock aim: right click     "
+                    + "Power: wheel or \u2191 \u2193     Spin: click the cue ball     Shoot: click or Space";
 
     private final GameSession session;
     private final BorderPane layout = new BorderPane();
@@ -54,12 +53,8 @@ public final class GameScreen extends StackPane {
     private final SoundEffects sounds;
     private final CueBallFace spinFace = new CueBallFace(SPIN_BUTTON_FACE_SIZE, false);
     private final Button spinButton = new Button("Spin");
-    private final StackPane gameOverOverlay = new StackPane();
-    private final StackPane settingsOverlay = new StackPane();
-    private final SettingsPanel settingsPanel;
-    private final Label winnerLabel = new Label();
-    private final Label reasonLabel = new Label();
-    private final Button playAgainButton = new Button("Play again");
+    private final GameOverOverlay gameOverOverlay;
+    private final SettingsOverlay settingsOverlay;
     private final AnimationTimer timer;
     private boolean wideLayout;
 
@@ -68,19 +63,20 @@ public final class GameScreen extends StackPane {
         this.gameCanvas = new GameCanvas(session);
         this.powerMeter = new PowerMeter(session::setPower);
         this.spinPicker = new SpinPicker(session, gameCanvas::requestFocus);
-        this.settingsPanel = new SettingsPanel(audio, this::closeSettings);
+        this.gameOverOverlay = new GameOverOverlay(onNewMatch, onMenu);
+        this.settingsOverlay = new SettingsOverlay(audio, gameCanvas::requestFocus);
         this.sounds = new SoundEffects(audio.effects(), SoundBank.standard(), session.table().width(),
                 RandomGenerator.getDefault());
         session.addPhysicsListener(sounds);
         this.timer = createTimer();
 
         layout.setPadding(new Insets(28));
-        layout.setCenter(new StackPane(gameCanvas, spinPicker, buildGameOverOverlay(onNewMatch, onMenu)));
+        layout.setCenter(new StackPane(gameCanvas, spinPicker, gameOverOverlay));
         // The overlays fit themselves to whatever room the table gets; they must not make the table area taller.
         spinPicker.setMinSize(0, 0);
         gameOverOverlay.setMinSize(0, 0);
         layout.setBottom(buildBottomBar(onNewMatch, onMenu));
-        getChildren().addAll(layout, buildSettingsOverlay());
+        getChildren().addAll(layout, settingsOverlay);
         configureTopBar();
         widthProperty().addListener((observable, before, width) -> {
             boolean wide = width.doubleValue() >= WIDE_LAYOUT_MIN_WIDTH;
@@ -137,7 +133,7 @@ public final class GameScreen extends StackPane {
         Button newMatch = new Button("New match");
         newMatch.setOnAction(event -> onNewMatch.run());
         Button settingsButton = new Button("Settings");
-        settingsButton.setOnAction(event -> openSettings());
+        settingsButton.setOnAction(event -> settingsOverlay.open());
         Label hint = new Label(CONTROLS_HINT);
         hint.getStyleClass().add("muted");
         hint.setWrapText(true);
@@ -168,61 +164,6 @@ public final class GameScreen extends StackPane {
         spinButton.getStyleClass().add("spin-button");
         spinButton.setAccessibleHelp("Choose where the cue hits the cue ball");
         spinButton.setOnAction(event -> spinPicker.open());
-    }
-
-    private StackPane buildGameOverOverlay(Runnable onNewMatch, Runnable onMenu) {
-        winnerLabel.getStyleClass().add("display-medium");
-        reasonLabel.getStyleClass().add("lead");
-        reasonLabel.setWrapText(true);
-        playAgainButton.getStyleClass().add("primary");
-        playAgainButton.setOnAction(event -> onNewMatch.run());
-        Button menuButton = new Button("Main menu");
-        menuButton.setOnAction(event -> onMenu.run());
-
-        VBox card = new VBox(18, winnerLabel, reasonLabel, new HBox(14, playAgainButton, menuButton));
-        card.setAlignment(Pos.CENTER_LEFT);
-        card.setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
-        card.setPadding(new Insets(40, 48, 40, 48));
-        card.getStyleClass().add("overlay-card");
-
-        gameOverOverlay.getChildren().add(card);
-        gameOverOverlay.getStyleClass().add("overlay");
-        gameOverOverlay.setVisible(false);
-        return gameOverOverlay;
-    }
-
-    /** Settings over the screen: Escape, Done or a click beside the card closes it. Balls keep rolling meanwhile. */
-    private StackPane buildSettingsOverlay() {
-        VBox card = new VBox(settingsPanel);
-        card.setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
-        card.setPadding(new Insets(36, 48, 36, 48));
-        card.getStyleClass().add("overlay-card");
-
-        settingsOverlay.getChildren().add(card);
-        settingsOverlay.getStyleClass().add("overlay");
-        settingsOverlay.setVisible(false);
-        settingsOverlay.setOnMouseClicked(event -> {
-            if (event.getTarget() == settingsOverlay) {
-                closeSettings();
-            }
-        });
-        settingsOverlay.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (event.getCode() == KeyCode.ESCAPE) {
-                closeSettings();
-                event.consume();
-            }
-        });
-        return settingsOverlay;
-    }
-
-    private void openSettings() {
-        settingsOverlay.setVisible(true);
-        settingsPanel.focusFirstControl();
-    }
-
-    private void closeSettings() {
-        settingsOverlay.setVisible(false);
-        gameCanvas.requestFocus();
     }
 
     private static Region spacer() {
@@ -282,11 +223,8 @@ public final class GameScreen extends StackPane {
     private void showGameOverIfFinished() {
         boolean finished = session.phase() == GamePhase.GAME_OVER;
         if (finished && !gameOverOverlay.isVisible()) {
-            winnerLabel.setText(StatusText.winnerHeadline(session));
-            reasonLabel.setText(StatusText.gameOverReason(session));
-            gameOverOverlay.setVisible(true);
+            gameOverOverlay.show(StatusText.winnerHeadline(session), StatusText.gameOverReason(session));
             sounds.playFanfare();
-            playAgainButton.requestFocus();
         }
     }
 }

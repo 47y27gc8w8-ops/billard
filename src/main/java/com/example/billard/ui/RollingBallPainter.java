@@ -16,16 +16,16 @@ import javafx.scene.paint.Color;
  * is turned back into the ball's own frame and coloured by what lies there. The number is drawn as text mapped onto
  * its disc, then {@link BallPainter#paintShading} adds the lamp's light, which stays put while the ball turns.
  *
- * <p>Ball frame: the number discs sit on the +z and -z axis, and a stripe ball's band runs round the y axis, through both
- * discs, as on a real ball.
+ * <p>Ball frame: the number discs sit on the +z and -z axis, and a stripe ball's band runs round the y axis,
+ * through both discs, as on a real ball.
  */
 final class RollingBallPainter {
 
-    private static final double STRIPE_HALF_HEIGHT = 0.56;
-    /** Sine of the number disc's angular radius, so the disc spans this share of the radius when it faces up. */
-    private static final double NUMBER_DISC = 0.54;
-    private static final double NUMBER_DISC_COS = Math.sqrt(1 - NUMBER_DISC * NUMBER_DISC);
-    private static final double NUMBER_SIZE = 0.72;
+    /**
+     * Cosine of the number disc's angular radius. The disc's sine is {@link BallPainter#NUMBER_DISC}, so it spans that
+     * share of the radius when it faces up, the same as on a ball painted flat.
+     */
+    private static final double NUMBER_DISC_COS = Math.sqrt(1 - BallPainter.NUMBER_DISC * BallPainter.NUMBER_DISC);
     /** The number fades out as its disc turns edge-on, between these facing values. */
     private static final double NUMBER_HIDDEN_FACING = 0.12;
     private static final double NUMBER_SHOWN_FACING = 0.4;
@@ -110,7 +110,7 @@ final class RollingBallPainter {
                 double by = m[1] * nx + m[4] * ny + m[7] * nz;
                 double bz = m[2] * nx + m[5] * ny + m[8] * nz;
                 boolean onNumberDisc = Math.abs(bz) > NUMBER_DISC_COS;
-                boolean onWhiteCap = striped && Math.abs(by) > STRIPE_HALF_HEIGHT;
+                boolean onWhiteCap = striped && Math.abs(by) > BallPainter.STRIPE_HALF_HEIGHT;
                 int colour = onNumberDisc || onWhiteCap ? white : body;
                 red += (colour >> 16) & 0xFF;
                 green += (colour >> 8) & 0xFF;
@@ -137,12 +137,10 @@ final class RollingBallPainter {
             return;
         }
         gc.save();
-        // Clipping is costly, and a number facing mostly up cannot reach past the ball's rim, so only clip near the rim.
+        // Clipping is costly, and a number facing mostly up cannot reach past the ball's rim, so only clip near
+        // the rim.
         if (Math.abs(facing) < NUMBER_CLIP_FACING) {
-            gc.beginPath();
-            gc.arc(cx, cy, radius, radius, 0, 360);
-            gc.closePath();
-            gc.clip();
+            BallPainter.clipToCircle(gc, cx, cy, radius);
         }
         gc.setGlobalAlpha(opacity);
         // Seen from outside, the far disc's frame is the near one turned half round the y axis, so x flips.
@@ -151,7 +149,7 @@ final class RollingBallPainter {
         double rimDepth = radius * NUMBER_DISC_COS * side;
         gc.transform(side * m[0], side * m[3], m[1], m[4], cx + rimDepth * m[2], cy + rimDepth * m[5]);
         gc.setFill(Palette.BALL_NUMBER_INK);
-        BallNumber.fillCentred(gc, number, radius * NUMBER_SIZE, 0, 0);
+        BallNumber.fillCentred(gc, number, radius * BallPainter.NUMBER_SIZE, 0, 0);
         gc.restore();
     }
 

@@ -40,7 +40,8 @@ final class Lighting {
 
     /** Light and shade over a flat-painted sphere: a broad sheen toward the lamp, darkening to the far rim. */
     static Paint sphereShade(double cx, double cy, double radius) {
-        return new RadialGradient(0, 0, cx - radius * 0.35, cy - radius * 0.4, radius * 1.5, false, CycleMethod.NO_CYCLE,
+        return new RadialGradient(0, 0, cx - radius * 0.35, cy - radius * 0.4, radius * 1.5, false,
+                CycleMethod.NO_CYCLE,
                 new Stop(0, white(0.38)),
                 new Stop(0.2, white(0.08)),
                 new Stop(0.45, CLEAR),

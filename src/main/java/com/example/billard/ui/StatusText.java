@@ -15,7 +15,8 @@ final class StatusText {
         String player = session.currentPlayer().label();
         return switch (session.phase()) {
             case BALLS_MOVING -> "Balls rolling.";
-            case PLACING_CUE -> recap(session) + player + " has ball in hand. Place the cue ball, then click or press Enter.";
+            case PLACING_CUE -> recap(session) + player
+                    + " has ball in hand. Place the cue ball, then click or press Enter.";
             case AIMING -> session.isAimLocked()
                     ? "Aim locked. Set the power, then shoot. Right click to aim again."
                     : recap(session) + (session.match().isBreakShot() ? player + " to break." : player + " to shoot.");
@@ -37,7 +38,8 @@ final class StatusText {
         if (shooterWon) {
             return shooter + " potted the 8-ball and cleared the table.";
         }
-        return shooter + " lost by " + (outcome.foul().isFoul() ? "fouling on the 8-ball." : "potting the 8-ball too early.");
+        String mistake = outcome.foul().isFoul() ? "fouling on the 8-ball." : "potting the 8-ball too early.";
+        return shooter + " lost by " + mistake;
     }
 
     private static String recap(GameSession session) {

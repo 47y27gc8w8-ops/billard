@@ -41,7 +41,7 @@ final class SpinPicker extends StackPane {
         heightProperty().addListener((observable, before, height) -> fitFaceTo(height.doubleValue()));
         face.setOnMousePressed(this::choose);
         face.setOnMouseDragged(this::choose);
-        setOnMouseClicked(event -> closeWhenBackdropClicked(event));
+        setOnMouseClicked(this::closeWhenBackdropClicked);
         addEventFilter(KeyEvent.KEY_PRESSED, this::handleKey);
     }
 
