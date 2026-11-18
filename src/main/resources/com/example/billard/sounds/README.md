@@ -23,6 +23,5 @@ random, so more takes can be dropped in without code changes (16-bit PCM, 44.1 k
 | `break_1` | Rack break | [766411](https://freesound.org/s/766411/) "Pool Break" (DariusOW) |
 | `break_2` | Rack break | [204187](https://freesound.org/s/204187/) "pool_break.wav" (reg7783) |
 
-`success_1` (the game-over fanfare) is not a ball sound and still comes from the `dist/sounds` folder of
-https://github.com/tailuge/billiards (GNU General Public License v3.0). Check that licence before distributing the
-game, or replace the file.
+The game-over fanfare is not included yet. The game looks for `success_1.wav` (then `success_2.wav`, ...) in this
+folder and stays silent at game over while none is there; add your own recording with the same format.
