@@ -60,7 +60,7 @@ final class PlayerCard extends HBox {
         } else {
             getStyleClass().remove("active");
         }
-        stateLabel.setText(view.active() ? view.groupText() + " · shooting" : view.groupText());
+        stateLabel.setText(view.active() ? view.groupText() + " \u00B7 shooting" : view.groupText());
         setAccessibleText(playerName + ", " + stateLabel.getText() + ", " + view.pottedNumbers().size() + " balls potted");
         drawStrip(view);
     }

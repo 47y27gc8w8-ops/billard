@@ -15,7 +15,7 @@ public record Orientation(double w, double x, double y, double z) {
         if (distance == 0) {
             return this;
         }
-        // The axis lies flat on the cloth, square to the travel: up × travel.
+        // The axis lies flat on the cloth, square to the travel: up cross travel.
         return turnedAbout(-travel.y() / distance, travel.x() / distance, 0, distance / radius);
     }
 
@@ -25,7 +25,7 @@ public record Orientation(double w, double x, double y, double z) {
     }
 
     /**
-     * The rotation as a row-major 3×3 matrix that takes directions fixed to the ball into the world. Column 2 is
+     * The rotation as a row-major 3x3 matrix that takes directions fixed to the ball into the world. Column 2 is
      * where the number face points; entry 8 above 0 means it faces the viewer.
      */
     public double[] matrix() {

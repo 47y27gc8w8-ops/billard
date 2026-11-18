@@ -36,7 +36,7 @@ public final class GameScreen extends StackPane {
     private static final double CARD_WIDTH = 250;
     private static final double SPIN_BUTTON_FACE_SIZE = 40;
     private static final String CONTROLS_HINT =
-            "Aim: mouse or ← → (Shift for fine)     Lock aim: right click     Power: wheel or ↑ ↓     "
+            "Aim: mouse or \u2190 \u2192 (Shift for fine)     Lock aim: right click     Power: wheel or \u2191 \u2193     "
                     + "Spin: click the cue ball     Shoot: click or Space";
 
     private final GameSession session;

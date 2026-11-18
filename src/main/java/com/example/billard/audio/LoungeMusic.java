@@ -29,7 +29,7 @@ public final class LoungeMusic {
 
     /** CC BY 4.0 credit: titles, author, source and licence. Must stay visible in every build that ships the music. */
     public static final String CREDIT = TRACKS.stream()
-            .map(track -> "“" + track.title() + "”")
+            .map(track -> "\u201C" + track.title() + "\u201D")
             .collect(Collectors.joining(", ", "Music: ", " by Kevin MacLeod (incompetech.com). "))
             + "Licensed under Creative Commons: By Attribution 4.0 (creativecommons.org/licenses/by/4.0).";
 

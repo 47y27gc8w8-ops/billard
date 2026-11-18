@@ -20,7 +20,7 @@ import javafx.scene.text.TextAlignment;
  * is turned back into the ball's own frame and coloured by what lies there. The number is drawn as text mapped onto
  * its disc, then {@link BallPainter#paintShading} adds the lamp's light, which stays put while the ball turns.
  *
- * <p>Ball frame: the number discs sit on the ±z axis, and a stripe ball's band runs round the y axis, through both
+ * <p>Ball frame: the number discs sit on the +z and -z axis, and a stripe ball's band runs round the y axis, through both
  * discs, as on a real ball.
  */
 final class RollingBallPainter {
