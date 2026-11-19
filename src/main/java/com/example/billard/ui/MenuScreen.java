@@ -1,5 +1,6 @@
 package com.example.billard.ui;
 
+import com.example.billard.model.BotLevel;
 import java.util.List;
 import java.util.function.Consumer;
 import javafx.geometry.Insets;
@@ -15,7 +16,7 @@ import javafx.scene.layout.VBox;
 
 /**
  * Title screen: the name, a one-line pitch, the actions, and the rack on the table under the lamp. A match starts
- * either against the bot or for two players sharing the table.
+ * either against a bot, whose level is picked on its own page, or for two players sharing the table.
  */
 public final class MenuScreen extends HBox {
 
@@ -23,21 +24,27 @@ public final class MenuScreen extends HBox {
     private static final double TEXT_COLUMN_PADDING = 44;
     private static final double LOGO_SIZE = 88;
     private static final double BRAND_GAP = 6;
+    private static final double LEVEL_BUTTON_WIDTH = 112;
+    private static final BotLevel SUGGESTED_LEVEL = BotLevel.MEDIUM;
 
     private final Button botButton = new Button("Play vs bot");
     private final Button backButton = new Button("Back");
+    private final Button suggestedLevelButton = new Button(SUGGESTED_LEVEL.label());
     private final VBox mainColumn;
+    private final VBox levelColumn;
     private final VBox howToColumn;
     private final SettingsPanel settingsColumn;
 
     public MenuScreen(GameAudio audio, Consumer<MatchMode> onStart, Runnable onQuit) {
         this.mainColumn = buildMainColumn(onStart, onQuit);
+        this.levelColumn = buildLevelColumn(onStart);
         this.howToColumn = buildHowToColumn();
         this.settingsColumn = new SettingsPanel(audio, this::showMain);
+        levelColumn.setVisible(false);
         howToColumn.setVisible(false);
         settingsColumn.setVisible(false);
 
-        StackPane textSide = new StackPane(mainColumn, howToColumn, settingsColumn);
+        StackPane textSide = new StackPane(mainColumn, levelColumn, howToColumn, settingsColumn);
         textSide.setMinWidth(TEXT_COLUMN_WIDTH);
         textSide.setMaxWidth(TEXT_COLUMN_WIDTH);
         textSide.setPadding(new Insets(TEXT_COLUMN_PADDING));
@@ -59,10 +66,10 @@ public final class MenuScreen extends HBox {
         pitch.setWrapText(true);
 
         botButton.getStyleClass().add("primary");
-        botButton.setOnAction(event -> onStart.accept(MatchMode.VERSUS_BOT));
-        botButton.setAccessibleHelp("Start a match against the computer");
+        botButton.setOnAction(event -> showLevels());
+        botButton.setAccessibleHelp("Choose a bot level, then start a match against the computer");
         Button twoPlayers = new Button("Two players");
-        twoPlayers.setOnAction(event -> onStart.accept(MatchMode.TWO_PLAYERS));
+        twoPlayers.setOnAction(event -> onStart.accept(MatchMode.twoPlayers()));
         twoPlayers.setAccessibleHelp("Start a match for two people taking turns at this computer");
         Button howTo = new Button("How to play");
         howTo.setOnAction(event -> showHowTo());
@@ -77,13 +84,52 @@ public final class MenuScreen extends HBox {
         return column;
     }
 
+    /** One button per bot level, each next to what playing it is like, and a way back. */
+    private VBox buildLevelColumn(Consumer<MatchMode> onStart) {
+        Label heading = new Label("Choose a bot");
+        heading.getStyleClass().add("display-medium");
+
+        VBox levels = new VBox(16);
+        for (BotLevel level : BotLevel.values()) {
+            Button start = level == SUGGESTED_LEVEL ? suggestedLevelButton : new Button(level.label());
+            start.setMinWidth(LEVEL_BUTTON_WIDTH);
+            start.setAccessibleHelp(describe(level));
+            start.setOnAction(event -> onStart.accept(MatchMode.versusBot(level)));
+            Label text = new Label(describe(level));
+            text.setWrapText(true);
+            HBox row = new HBox(16, start, text);
+            row.setAlignment(Pos.CENTER_LEFT);
+            levels.getChildren().add(row);
+        }
+        suggestedLevelButton.getStyleClass().add("primary");
+
+        Button back = new Button("Back");
+        back.setOnAction(event -> showMain());
+        VBox column = new VBox(22, heading, scrolling(levels), back);
+        column.setAlignment(Pos.CENTER_LEFT);
+        return column;
+    }
+
+    /** What playing against {@code level} is like, for the level page and How to play. */
+    private static String describe(BotLevel level) {
+        return switch (level) {
+            case EASY -> "Still learning. Misses most pots and never plays safe: you would have to try to lose.";
+            case MEDIUM -> "A casual player. Pots the easy ones and misses plenty. Tough for beginners, "
+                    + "beatable for regulars.";
+            case HARD -> "A strong player. Pots most shots and plays for position, but misses now and then.";
+            case BOSS -> "Never misses. Every shot is played perfectly; give it one turn and the match is over.";
+        };
+    }
+
     private VBox buildHowToColumn() {
         Label heading = new Label("How to play");
         heading.getStyleClass().add("display-medium");
 
         VBox rules = new VBox(14,
-                rule("Opponent", "Play vs bot puts you against the computer: you are Player 1 and break, the bot "
-                        + "plays as Player 2. Two players is for two people taking turns at the same table."),
+                rule("Opponent", "Play vs bot puts you against the computer at the level you pick: you are "
+                        + "Player 1 and break, the bot plays as Player 2. Two players is for two people taking turns "
+                        + "at the same table. New match and Play again keep your choice."),
+                rule("Bot levels", levelSummary()),
                 rule("Bot's turn", "The bot thinks, places the cue ball if it has ball in hand, lines up and shoots "
                         + "on its own. The table and shot controls wait meanwhile; Settings, Menu and New match "
                         + "still work."),
@@ -101,18 +147,30 @@ public final class MenuScreen extends HBox {
                 rule("Fouls", "Scratching, hitting the wrong ball first, or a shot where nothing is potted and no ball "
                         + "reaches a cushion gives your opponent ball in hand."));
 
-        ScrollPane scroller = new ScrollPane(rules);
+        backButton.getStyleClass().add("primary");
+        backButton.setOnAction(event -> showMain());
+
+        VBox column = new VBox(22, heading, scrolling(rules), backButton);
+        column.setAlignment(Pos.CENTER_LEFT);
+        return column;
+    }
+
+    private static String levelSummary() {
+        StringBuilder summary = new StringBuilder();
+        for (BotLevel level : BotLevel.values()) {
+            summary.append(summary.isEmpty() ? "" : "\n").append(level.label()).append(": ").append(describe(level));
+        }
+        return summary.toString();
+    }
+
+    /** Lets {@code content} scroll when the window is too short for all of it. */
+    private static ScrollPane scrolling(VBox content) {
+        ScrollPane scroller = new ScrollPane(content);
         scroller.setFitToWidth(true);
         scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroller.getStyleClass().add("how-to-scroller");
         VBox.setVgrow(scroller, Priority.ALWAYS);
-
-        backButton.getStyleClass().add("primary");
-        backButton.setOnAction(event -> showMain());
-
-        VBox column = new VBox(22, heading, scroller, backButton);
-        column.setAlignment(Pos.CENTER_LEFT);
-        return column;
+        return scroller;
     }
 
     private static VBox rule(String name, String text) {
@@ -128,6 +186,11 @@ public final class MenuScreen extends HBox {
         botButton.requestFocus();
     }
 
+    private void showLevels() {
+        showOnly(levelColumn);
+        suggestedLevelButton.requestFocus();
+    }
+
     private void showHowTo() {
         showOnly(howToColumn);
         backButton.requestFocus();
@@ -139,7 +202,7 @@ public final class MenuScreen extends HBox {
     }
 
     private void showOnly(VBox column) {
-        for (VBox each : List.of(mainColumn, howToColumn, settingsColumn)) {
+        for (VBox each : List.of(mainColumn, levelColumn, howToColumn, settingsColumn)) {
             each.setVisible(each == column);
         }
     }

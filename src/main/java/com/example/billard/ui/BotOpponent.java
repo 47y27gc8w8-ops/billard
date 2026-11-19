@@ -97,15 +97,20 @@ final class BotOpponent {
         }
     }
 
-    /** Turns the cue from where it pointed onto the shot line, easing in and out, the short way round. */
+    /**
+     * Turns the cue from where it pointed onto the shot line, easing in and out, the short way round. The last frame
+     * sets the planned angle exactly, so the shot played is the shot the planner simulated.
+     */
     private void swingCue() {
         double progress = Math.min(1, stageSeconds / AIM_SECONDS);
+        if (progress >= 1) {
+            session.setAimAngle(shot.angle());
+            enter(Stage.SETTLING);
+            return;
+        }
         double eased = progress * progress * (3 - 2 * progress);
         double turn = Math.IEEEremainder(shot.angle() - startAngle, 2 * Math.PI);
-        session.rotateAim(startAngle + turn * eased - session.aimAngle());
-        if (progress >= 1) {
-            enter(Stage.SETTLING);
-        }
+        session.setAimAngle(startAngle + turn * eased);
     }
 
     private void shootWhenSettled() {

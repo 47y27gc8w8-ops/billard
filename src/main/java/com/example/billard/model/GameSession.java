@@ -116,6 +116,13 @@ public final class GameSession {
         }
     }
 
+    /** Points the cue exactly along {@code radians}, unless the aim is locked or no shot is being lined up. */
+    public void setAimAngle(double radians) {
+        if (canAim()) {
+            aimAngle = radians;
+        }
+    }
+
     public void rotateAim(double radians) {
         if (canAim()) {
             aimAngle += radians;

@@ -2,7 +2,6 @@ package com.example.billard.ui;
 
 import com.example.billard.model.Ball;
 import com.example.billard.model.BallKind;
-import com.example.billard.model.BotSkill;
 import com.example.billard.model.GamePhase;
 import com.example.billard.model.GameSession;
 import com.example.billard.model.Player;
@@ -107,11 +106,8 @@ public final class GameScreen extends StackPane {
     }
 
     private static Optional<BotOpponent> botFor(GameSession session, MatchMode mode) {
-        if (!mode.isBot(Player.TWO)) {
-            return Optional.empty();
-        }
-        ShotPlanner planner = new ShotPlanner(BotSkill.STANDARD, RandomGenerator.getDefault());
-        return Optional.of(new BotOpponent(session, Player.TWO, planner));
+        return mode.botLevel().map(level ->
+                new BotOpponent(session, Player.TWO, new ShotPlanner(level, RandomGenerator.getDefault())));
     }
 
     private void configureTopBar() {
