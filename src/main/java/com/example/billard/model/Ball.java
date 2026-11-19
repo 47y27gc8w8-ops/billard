@@ -18,6 +18,17 @@ public final class Ball {
         this.position = position;
     }
 
+    /** An independent copy at the same spot, with the same motion, spin and pocketed state. */
+    public Ball copy() {
+        Ball copy = new Ball(number, position);
+        copy.velocity = velocity;
+        copy.rollSpin = rollSpin;
+        copy.sideSpin = sideSpin;
+        copy.orientation = orientation;
+        copy.pocketed = pocketed;
+        return copy;
+    }
+
     public int number() {
         return number;
     }

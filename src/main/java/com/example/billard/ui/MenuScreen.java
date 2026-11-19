@@ -1,6 +1,7 @@
 package com.example.billard.ui;
 
 import java.util.List;
+import java.util.function.Consumer;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -12,7 +13,10 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
-/** Title screen: the name, a one-line pitch, the actions, and the rack on the table under the lamp. */
+/**
+ * Title screen: the name, a one-line pitch, the actions, and the rack on the table under the lamp. A match starts
+ * either against the bot or for two players sharing the table.
+ */
 public final class MenuScreen extends HBox {
 
     private static final double TEXT_COLUMN_WIDTH = 480;
@@ -20,13 +24,13 @@ public final class MenuScreen extends HBox {
     private static final double LOGO_SIZE = 88;
     private static final double BRAND_GAP = 6;
 
-    private final Button startButton = new Button("Start match");
+    private final Button botButton = new Button("Play vs bot");
     private final Button backButton = new Button("Back");
     private final VBox mainColumn;
     private final VBox howToColumn;
     private final SettingsPanel settingsColumn;
 
-    public MenuScreen(GameAudio audio, Runnable onStart, Runnable onQuit) {
+    public MenuScreen(GameAudio audio, Consumer<MatchMode> onStart, Runnable onQuit) {
         this.mainColumn = buildMainColumn(onStart, onQuit);
         this.howToColumn = buildHowToColumn();
         this.settingsColumn = new SettingsPanel(audio, this::showMain);
@@ -46,16 +50,20 @@ public final class MenuScreen extends HBox {
         getChildren().addAll(textSide, art);
     }
 
-    private VBox buildMainColumn(Runnable onStart, Runnable onQuit) {
+    private VBox buildMainColumn(Consumer<MatchMode> onStart, Runnable onQuit) {
         Label title = new Label("Billard");
         title.getStyleClass().add("display");
         VBox brand = new VBox(BRAND_GAP, new ImageView(AppIcon.scaledTo(LOGO_SIZE)), title);
-        Label pitch = new Label("Eight-ball for two at one table. Pot your group, then the eight.");
+        Label pitch = new Label("Eight-ball against the bot or a friend. Pot your group, then the eight.");
         pitch.getStyleClass().add("lead");
         pitch.setWrapText(true);
 
-        startButton.getStyleClass().add("primary");
-        startButton.setOnAction(event -> onStart.run());
+        botButton.getStyleClass().add("primary");
+        botButton.setOnAction(event -> onStart.accept(MatchMode.VERSUS_BOT));
+        botButton.setAccessibleHelp("Start a match against the computer");
+        Button twoPlayers = new Button("Two players");
+        twoPlayers.setOnAction(event -> onStart.accept(MatchMode.TWO_PLAYERS));
+        twoPlayers.setAccessibleHelp("Start a match for two people taking turns at this computer");
         Button howTo = new Button("How to play");
         howTo.setOnAction(event -> showHowTo());
         Button settings = new Button("Settings");
@@ -63,7 +71,7 @@ public final class MenuScreen extends HBox {
         Button quit = new Button("Quit");
         quit.setOnAction(event -> onQuit.run());
 
-        VBox actions = new VBox(12, new HBox(12, startButton, howTo), new HBox(12, settings, quit));
+        VBox actions = new VBox(12, new HBox(12, botButton, twoPlayers), new HBox(12, howTo, settings, quit));
         VBox column = new VBox(28, brand, pitch, actions);
         column.setAlignment(Pos.CENTER_LEFT);
         return column;
@@ -74,6 +82,11 @@ public final class MenuScreen extends HBox {
         heading.getStyleClass().add("display-medium");
 
         VBox rules = new VBox(14,
+                rule("Opponent", "Play vs bot puts you against the computer: you are Player 1 and break, the bot "
+                        + "plays as Player 2. Two players is for two people taking turns at the same table."),
+                rule("Bot's turn", "The bot thinks, places the cue ball if it has ball in hand, lines up and shoots "
+                        + "on its own. The table and shot controls wait meanwhile; Settings, Menu and New match "
+                        + "still work."),
                 rule("Aim", "Move the mouse, or use \u2190 \u2192. Hold Shift for fine steps."),
                 rule("Lock aim", "Right click fixes your aim so you can set the power. Right click again to aim anew."),
                 rule("Power", "Scroll the wheel, use \u2191 \u2193, or click the power bar."),
@@ -112,7 +125,7 @@ public final class MenuScreen extends HBox {
 
     private void showMain() {
         showOnly(mainColumn);
-        startButton.requestFocus();
+        botButton.requestFocus();
     }
 
     private void showHowTo() {

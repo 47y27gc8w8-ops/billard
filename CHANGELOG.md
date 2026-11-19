@@ -2,6 +2,22 @@
 
 All notable changes to Billard. Versions follow [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+
+- Play against a bot. The title screen now offers **Play vs bot** and **Two players**; the bot takes Player 2's
+  turns, plans each shot by simulating candidates with the game's own physics and rules, places the cue ball
+  when it has ball in hand, and aims with a small human-like error.
+- How to play and the README explain the two opponents and how the bot plays.
+
+### Changed
+
+- The table, power bar and spin button ignore input while the bot is playing.
+- **New match** and **Play again** keep the chosen opponent.
+- The cue stroke is shared by players and the bot (`Shot`), and the rules expose which balls a player may hit
+  first, so the bot and the referee use the same logic.
+
 ## [1.0.0] - 2026-11-18
 
 The first full release.
@@ -42,5 +58,6 @@ The first full release.
 
 First playable beta: two-player eight-ball with physics, rules, fouls and ball in hand.
 
+[Unreleased]: https://github.com/47y27gc8w8-ops/billard/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/47y27gc8w8-ops/billard/compare/75184b8...v1.0.0
 [0.1.0]: https://github.com/47y27gc8w8-ops/billard/commit/75184b8

@@ -1,8 +1,10 @@
 package com.example.billard.model;
 
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Rules of the match: whose turn it is, who owns which group, fouls and the win condition.
@@ -20,6 +22,21 @@ public final class EightBallMatch {
     private final Map<BallKind, Integer> pottedPerGroup = new EnumMap<>(BallKind.class);
     private Player currentPlayer = Player.ONE;
     private boolean breakShot = true;
+
+    public EightBallMatch() {
+    }
+
+    private EightBallMatch(EightBallMatch original) {
+        groups.putAll(original.groups);
+        pottedPerGroup.putAll(original.pottedPerGroup);
+        currentPlayer = original.currentPlayer;
+        breakShot = original.breakShot;
+    }
+
+    /** An independent copy, so a shot can be tried out without changing this match. */
+    public EightBallMatch copy() {
+        return new EightBallMatch(this);
+    }
 
     public Player currentPlayer() {
         return currentPlayer;
@@ -40,7 +57,7 @@ public final class EightBallMatch {
     public TurnOutcome resolveShot(ShotReport report) {
         Player shooter = currentPlayer;
         boolean shootingAtEight = isShootingAtEight(shooter);
-        Foul foul = detectFoul(report, shooter, shootingAtEight);
+        Foul foul = detectFoul(report, shooter);
         boolean eightOnBreak = breakShot && report.pocketedEight();
         breakShot = false;
 
@@ -56,33 +73,34 @@ public final class EightBallMatch {
         return new TurnOutcome(shooter, currentPlayer, foul, winner, assignedGroup, eightOnBreak);
     }
 
+    /** The kinds of ball {@code player} may hit first: their group, either group on an open table, or the eight. */
+    public Set<BallKind> legalTargets(Player player) {
+        if (isShootingAtEight(player)) {
+            return EnumSet.of(BallKind.EIGHT);
+        }
+        BallKind group = groups.get(player);
+        return group == null ? EnumSet.of(BallKind.SOLID, BallKind.STRIPE) : EnumSet.of(group);
+    }
+
     private boolean isShootingAtEight(Player player) {
         BallKind group = groups.get(player);
         return group != null && pottedPerGroup.getOrDefault(group, 0) >= GROUP_SIZE;
     }
 
-    private Foul detectFoul(ShotReport report, Player shooter, boolean shootingAtEight) {
+    private Foul detectFoul(ShotReport report, Player shooter) {
         if (report.pocketedCue()) {
             return Foul.CUE_POCKETED;
         }
         if (report.firstContact().isEmpty()) {
             return Foul.NO_CONTACT;
         }
-        if (!isLegalTarget(report.firstContact().get(), shooter, shootingAtEight)) {
+        if (!legalTargets(shooter).contains(report.firstContact().get())) {
             return Foul.WRONG_BALL_FIRST;
         }
         if (report.pocketed().isEmpty() && !report.railAfterContact()) {
             return Foul.NO_RAIL;
         }
         return Foul.NONE;
-    }
-
-    private boolean isLegalTarget(BallKind target, Player shooter, boolean shootingAtEight) {
-        if (shootingAtEight) {
-            return target == BallKind.EIGHT;
-        }
-        BallKind group = groups.get(shooter);
-        return group == null ? target.isGroup() : target == group;
     }
 
     private Optional<Player> decideWinner(ShotReport report, Player shooter, boolean shootingAtEight, Foul foul) {
