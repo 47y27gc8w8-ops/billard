@@ -17,7 +17,7 @@ import javafx.scene.layout.Pane;
  *
  * <p>Controls: mouse or left/right arrows aim (Shift for fine steps), right click locks or unlocks the aim,
  * wheel or up/down arrows set power, click or Space shoots. While placing the cue ball the mouse or arrows move it
- * and click or Enter confirms.
+ * and click or Enter confirms. While input is disabled, during the bot's turn, all of it is ignored.
  */
 final class GameCanvas extends Pane {
 
@@ -37,6 +37,7 @@ final class GameCanvas extends Pane {
     private double surfaceWidth = -1;
     private double surfaceHeight = -1;
     private double surfacePixelsPerUnit = -1;
+    private boolean inputEnabled = true;
 
     GameCanvas(GameSession session) {
         this.session = session;
@@ -58,6 +59,11 @@ final class GameCanvas extends Pane {
         setOnMousePressed(this::pressMouse);
         setOnScroll(this::scrollPower);
         setOnKeyPressed(this::pressKey);
+    }
+
+    /** Off while someone other than the person at the keyboard is playing; the view still draws every frame. */
+    void setInputEnabled(boolean enabled) {
+        inputEnabled = enabled;
     }
 
     /** @param elapsedSeconds time since the last frame, which moves balls that are dropping into pockets */
@@ -123,6 +129,9 @@ final class GameCanvas extends Pane {
     }
 
     private void steerWithMouse(MouseEvent event) {
+        if (!inputEnabled) {
+            return;
+        }
         Vec2 point = viewport().toTable(event.getX(), event.getY());
         switch (session.phase()) {
             case AIMING -> session.aimToward(point);
@@ -133,6 +142,9 @@ final class GameCanvas extends Pane {
 
     private void pressMouse(MouseEvent event) {
         requestFocus();
+        if (!inputEnabled) {
+            return;
+        }
         if (event.getButton() == MouseButton.SECONDARY) {
             session.toggleAimLock();
         } else if (event.getButton() == MouseButton.PRIMARY) {
@@ -142,12 +154,15 @@ final class GameCanvas extends Pane {
     }
 
     private void scrollPower(ScrollEvent event) {
-        if (event.getDeltaY() != 0) {
+        if (inputEnabled && event.getDeltaY() != 0) {
             session.adjustPower(Math.signum(event.getDeltaY()) * WHEEL_POWER_STEP);
         }
     }
 
     private void pressKey(KeyEvent event) {
+        if (!inputEnabled) {
+            return;
+        }
         boolean handled = true;
         switch (event.getCode()) {
             case LEFT -> nudgeHorizontally(-1, aimStepFor(event));

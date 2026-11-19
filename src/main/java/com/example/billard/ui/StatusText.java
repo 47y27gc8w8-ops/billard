@@ -1,39 +1,53 @@
 package com.example.billard.ui;
 
 import com.example.billard.model.GameSession;
+import com.example.billard.model.Player;
 import com.example.billard.model.TurnOutcome;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Plain-language messages for the status line and the game-over screen. */
+/** Plain-language messages for the status line and the game-over screen, naming players as {@code mode} does. */
 final class StatusText {
 
     private StatusText() {
     }
 
-    static String describe(GameSession session) {
-        String player = session.currentPlayer().label();
+    static String describe(GameSession session, MatchMode mode) {
+        Player current = session.currentPlayer();
+        String player = mode.nameOf(current);
+        String recap = recap(session, mode);
         return switch (session.phase()) {
             case BALLS_MOVING -> "Balls rolling.";
-            case PLACING_CUE -> recap(session) + player
-                    + " has ball in hand. Place the cue ball, then click or press Enter.";
-            case AIMING -> session.isAimLocked()
-                    ? "Aim locked. Set the power, then shoot. Right click to aim again."
-                    : recap(session) + (session.match().isBreakShot() ? player + " to break." : player + " to shoot.");
-            case GAME_OVER -> gameOverReason(session);
+            case PLACING_CUE -> mode.isBot(current)
+                    ? recap + player + " has ball in hand."
+                    : recap + player + " has ball in hand. Place the cue ball, then click or press Enter.";
+            case AIMING -> describeAiming(session, mode, recap);
+            case GAME_OVER -> gameOverReason(session, mode);
         };
     }
 
-    static String winnerHeadline(GameSession session) {
-        return session.winner().map(winner -> winner.label() + " wins").orElse("Match over");
+    private static String describeAiming(GameSession session, MatchMode mode, String recap) {
+        Player current = session.currentPlayer();
+        String player = mode.nameOf(current);
+        if (mode.isBot(current)) {
+            return recap + player + " is lining up a shot.";
+        }
+        if (session.isAimLocked()) {
+            return "Aim locked. Set the power, then shoot. Right click to aim again.";
+        }
+        return recap + player + (session.match().isBreakShot() ? " to break." : " to shoot.");
     }
 
-    static String gameOverReason(GameSession session) {
-        return session.lastOutcome().map(StatusText::endingOf).orElse("");
+    static String winnerHeadline(GameSession session, MatchMode mode) {
+        return session.winner().map(winner -> mode.nameOf(winner) + " wins").orElse("Match over");
     }
 
-    private static String endingOf(TurnOutcome outcome) {
-        String shooter = outcome.shooter().label();
+    static String gameOverReason(GameSession session, MatchMode mode) {
+        return session.lastOutcome().map(outcome -> endingOf(outcome, mode)).orElse("");
+    }
+
+    private static String endingOf(TurnOutcome outcome, MatchMode mode) {
+        String shooter = mode.nameOf(outcome.shooter());
         boolean shooterWon = outcome.winner().filter(outcome.shooter()::equals).isPresent();
         if (shooterWon) {
             return shooter + " potted the 8-ball and cleared the table.";
@@ -42,14 +56,14 @@ final class StatusText {
         return shooter + " lost by " + mistake;
     }
 
-    private static String recap(GameSession session) {
-        return session.lastOutcome().map(StatusText::recapOf).orElse("");
+    private static String recap(GameSession session, MatchMode mode) {
+        return session.lastOutcome().map(outcome -> recapOf(outcome, mode)).orElse("");
     }
 
-    private static String recapOf(TurnOutcome outcome) {
+    private static String recapOf(TurnOutcome outcome, MatchMode mode) {
         List<String> sentences = new ArrayList<>();
         outcome.assignedGroup().ifPresent(group ->
-                sentences.add(outcome.shooter().label() + " takes " + group.groupName().toLowerCase() + "."));
+                sentences.add(mode.nameOf(outcome.shooter()) + " takes " + group.groupName().toLowerCase() + "."));
         if (outcome.foul().isFoul()) {
             sentences.add("Foul: " + outcome.foul().description() + ".");
         }

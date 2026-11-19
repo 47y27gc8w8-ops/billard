@@ -11,7 +11,6 @@ import java.util.Optional;
  */
 public final class GameSession {
 
-    private static final double MAX_SHOT_SPEED = 2400.0;
     private static final double MIN_POWER = 0.05;
     private static final double DEFAULT_POWER = 0.5;
 
@@ -90,6 +89,11 @@ public final class GameSession {
         return lastOutcome.flatMap(TurnOutcome::winner);
     }
 
+    /** A copy of the balls and the match that can be played forward without touching this session. */
+    public TableSnapshot snapshot() {
+        return new TableSnapshot(table, balls, match, phase == GamePhase.PLACING_CUE);
+    }
+
     public AimPrediction aimPrediction() {
         return AimPredictor.predict(table, balls, cueBall, aimAngle);
     }
@@ -148,18 +152,10 @@ public final class GameSession {
         recorder.reset();
         aimLocked = false;
         lastOutcome = Optional.empty();
-        strikeCueBall();
+        new Shot(aimAngle, power, tipContact).strike(cueBall);
         tipContact = TipContact.CENTER;
         phase = GamePhase.BALLS_MOVING;
         listeners.onCueStruck(power);
-    }
-
-    private void strikeCueBall() {
-        Vec2 direction = Vec2.fromAngle(aimAngle);
-        double speed = power * MAX_SHOT_SPEED;
-        cueBall.setVelocity(direction.times(speed));
-        cueBall.setRollSpin(tipContact.rollSpin(direction, speed));
-        cueBall.setSideSpin(tipContact.sideSpin(speed));
     }
 
     /** Moves the simulation forward. Does nothing unless balls are rolling. */
