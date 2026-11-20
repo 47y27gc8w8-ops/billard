@@ -11,6 +11,7 @@ import com.example.billard.model.Table;
 import com.example.billard.ui.AppIcon;
 import com.example.billard.ui.GameAudio;
 import com.example.billard.ui.GameScreen;
+import com.example.billard.ui.MatchMode;
 import com.example.billard.ui.MenuScreen;
 import com.example.billard.ui.Theme;
 import java.util.prefs.Preferences;
@@ -27,7 +28,10 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
-/** Application shell: owns the window and the sound, and switches between the menu and a running match. */
+/**
+ * Application shell: owns the window and the sound, and switches between the menu and a running match against the
+ * bot or between two players.
+ */
 public final class BilliardApplication extends Application {
 
     private static final double START_WIDTH = 1280;
@@ -96,9 +100,10 @@ public final class BilliardApplication extends Application {
         screenHost.getChildren().setAll(new MenuScreen(audio, this::startMatch, Platform::exit));
     }
 
-    private void startMatch() {
+    private void startMatch(MatchMode mode) {
         stopActiveGame();
-        activeGame = new GameScreen(new GameSession(Table.standard()), audio, this::startMatch, this::showMenu);
+        GameSession session = new GameSession(Table.standard());
+        activeGame = new GameScreen(session, mode, audio, () -> startMatch(mode), this::showMenu);
         screenHost.getChildren().setAll(activeGame);
         activeGame.start();
     }

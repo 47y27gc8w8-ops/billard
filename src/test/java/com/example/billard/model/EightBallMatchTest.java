@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class EightBallMatchTest {
@@ -125,5 +126,30 @@ class EightBallMatchTest {
         }
 
         assertEquals(Foul.WRONG_BALL_FIRST, match.resolveShot(shot(SOLID, true)).foul());
+    }
+
+    @Test
+    void legalTargetsFollowTheGroupsAndFinallyTheEight() {
+        assertEquals(Set.of(SOLID, STRIPE), match.legalTargets(Player.ONE));
+
+        playOpeningPot();
+        assertEquals(Set.of(SOLID), match.legalTargets(Player.ONE));
+        assertEquals(Set.of(STRIPE), match.legalTargets(Player.TWO));
+
+        for (int i = 0; i < 6; i++) {
+            match.resolveShot(shot(SOLID, true, SOLID));
+        }
+        assertEquals(Set.of(EIGHT), match.legalTargets(Player.ONE));
+    }
+
+    @Test
+    void aCopyPlaysOnWithoutChangingTheOriginal() {
+        EightBallMatch copy = match.copy();
+
+        copy.resolveShot(shot(SOLID, true, SOLID));
+
+        assertTrue(match.isTableOpen());
+        assertTrue(match.isBreakShot());
+        assertEquals(Optional.of(SOLID), copy.groupOf(Player.ONE));
     }
 }
