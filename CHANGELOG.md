@@ -4,6 +4,30 @@ All notable changes to Billard. Versions follow [Semantic Versioning](https://se
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-20
+
+### Added
+
+- Online play. **Play online** on the title screen hosts or joins a match against another computer, either
+  directly by address (port 47474) or through a relay server by four-character room code. Both games replay each
+  shot, and the shooter's final table settles any difference.
+- Live opponent aim, preset quick-chat messages, rematches that start once both players ask, and automatic
+  reconnecting for up to a minute after a dropped connection.
+- A small relay server (`com.example.billard.net.RelayServer`) that runs without JavaFX.
+- How to play and the README explain online play, how the two games stay in step, and how to run a relay.
+
+### Changed
+
+- The table, power bar and spin button also ignore input while the online opponent is playing.
+- The title screen gives **Play online** a row of its own between the match buttons and the rest.
+
+### Security
+
+- Everything received from the other game is checked before use: lines are capped at 4 KiB, every field must
+  have the expected type and range (no NaN or infinite numbers, shot power from 0 to 1), player names are limited
+  to 16 letters, digits and simple punctuation, and a table state is accepted only right after the other
+  player's own shot. Relay seats are protected by secrets compared in constant time.
+
 ## [1.2.0] - 2026-11-20
 
 ### Added
@@ -65,7 +89,8 @@ The first full release.
 
 First playable beta: two-player eight-ball with physics, rules, fouls and ball in hand.
 
-[Unreleased]: https://github.com/47y27gc8w8-ops/billard/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/47y27gc8w8-ops/billard/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/47y27gc8w8-ops/billard/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/47y27gc8w8-ops/billard/compare/v1.0.0...v1.2.0
 [1.0.0]: https://github.com/47y27gc8w8-ops/billard/compare/75184b8...v1.0.0
 [0.1.0]: https://github.com/47y27gc8w8-ops/billard/commit/75184b8

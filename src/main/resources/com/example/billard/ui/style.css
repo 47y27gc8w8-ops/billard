@@ -238,3 +238,73 @@
     -fx-background-radius: 4;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.9), 50, 0.3, 0, 16);
 }
+
+/* Online play: the lobby's fields and choices, the chat menu, and the notices laid over the table. */
+
+.text-field {
+    -fx-background-color: rgba(0, 0, 0, 0.55), derive(-panel, -30%);
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3;
+    -fx-text-fill: -ink;
+    -fx-prompt-text-fill: -ink-muted;
+    -fx-highlight-fill: derive(-accent, -20%);
+    -fx-padding: 10 12 10 12;
+    -fx-border-color: transparent;
+    -fx-border-width: 3;
+    -fx-border-radius: 4;
+    -fx-border-insets: -3;
+}
+
+.text-field:focused {
+    -fx-border-color: -ink;
+}
+
+.radio-button {
+    -fx-text-fill: -ink;
+}
+
+.radio-button:focused {
+    -fx-border-color: -ink;
+    -fx-border-width: 2;
+    -fx-border-radius: 3;
+}
+
+.menu-button {
+    -fx-background-color:
+            rgba(0, 0, 0, 0.55),
+            linear-gradient(to bottom, derive(-panel-raised, 22%), derive(-panel-raised, -12%));
+    -fx-background-insets: 0 0 -1 0, 0;
+    -fx-background-radius: 3;
+    -fx-padding: 8 14 8 14;
+    -fx-border-color: transparent;
+    -fx-border-width: 3;
+    -fx-border-radius: 4;
+    -fx-border-insets: -3;
+    -fx-cursor: hand;
+}
+
+.menu-button > .label {
+    -fx-text-fill: -ink;
+    -fx-font-weight: 700;
+}
+
+.menu-button:focused {
+    -fx-border-color: -ink;
+}
+
+.room-code {
+    -fx-font-size: 56px;
+    -fx-font-weight: 800;
+    -fx-text-fill: -accent;
+}
+
+.table-notice {
+    -fx-background-color: rgba(5, 6, 6, 0.86);
+    -fx-background-radius: 4;
+    -fx-padding: 10 18 10 18;
+    -fx-font-weight: 700;
+}
+
+.table-notice.warning {
+    -fx-text-fill: -accent;
+}

@@ -54,6 +54,24 @@ public final class EightBallMatch {
         return breakShot;
     }
 
+    /**
+     * Takes over the rules state another copy of this match reported, replacing everything this one knew.
+     *
+     * @param pottedPerGroup how many balls of each group are down
+     */
+    public void restore(Player current, boolean isBreakShot, Optional<BallKind> playerOneGroup,
+                        Map<BallKind, Integer> pottedPerGroup) {
+        groups.clear();
+        playerOneGroup.ifPresent(group -> {
+            groups.put(Player.ONE, group);
+            groups.put(Player.TWO, group.opposite());
+        });
+        this.pottedPerGroup.clear();
+        this.pottedPerGroup.putAll(pottedPerGroup);
+        currentPlayer = current;
+        breakShot = isBreakShot;
+    }
+
     public TurnOutcome resolveShot(ShotReport report) {
         Player shooter = currentPlayer;
         boolean shootingAtEight = isShootingAtEight(shooter);

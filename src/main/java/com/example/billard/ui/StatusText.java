@@ -18,7 +18,7 @@ final class StatusText {
         String recap = recap(session, mode);
         return switch (session.phase()) {
             case BALLS_MOVING -> "Balls rolling.";
-            case PLACING_CUE -> mode.isBot(current)
+            case PLACING_CUE -> mode.isAway(current)
                     ? recap + player + " has ball in hand."
                     : recap + player + " has ball in hand. Place the cue ball, then click or press Enter.";
             case AIMING -> describeAiming(session, mode, recap);
@@ -29,7 +29,7 @@ final class StatusText {
     private static String describeAiming(GameSession session, MatchMode mode, String recap) {
         Player current = session.currentPlayer();
         String player = mode.nameOf(current);
-        if (mode.isBot(current)) {
+        if (mode.isAway(current)) {
             return recap + player + " is lining up a shot.";
         }
         if (session.isAimLocked()) {
