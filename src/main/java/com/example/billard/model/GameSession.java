@@ -1,7 +1,11 @@
 package com.example.billard.model;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -22,6 +26,7 @@ public final class GameSession {
     private final PhysicsListenerGroup listeners = new PhysicsListenerGroup();
     private final PhysicsEngine engine;
     private final EightBallMatch match = new EightBallMatch();
+    private final List<TurnListener> turnListeners = new ArrayList<>();
 
     private GamePhase phase = GamePhase.AIMING;
     private double aimAngle;
@@ -43,6 +48,11 @@ public final class GameSession {
     /** Also tells {@code listener} about cue strikes, collisions, cushion hits and pocketed balls. */
     public void addPhysicsListener(PhysicsListener listener) {
         listeners.add(listener);
+    }
+
+    /** Also tells {@code listener} when the shooter places the cue ball or takes a shot. */
+    public void addTurnListener(TurnListener listener) {
+        turnListeners.add(listener);
     }
 
     public Table table() {
@@ -159,10 +169,12 @@ public final class GameSession {
         recorder.reset();
         aimLocked = false;
         lastOutcome = Optional.empty();
-        new Shot(aimAngle, power, tipContact).strike(cueBall);
+        Shot shot = new Shot(aimAngle, power, tipContact);
+        shot.strike(cueBall);
         tipContact = TipContact.CENTER;
         phase = GamePhase.BALLS_MOVING;
         listeners.onCueStruck(power);
+        turnListeners.forEach(listener -> listener.onShot(shot));
     }
 
     /** Moves the simulation forward. Does nothing unless balls are rolling. */
@@ -192,7 +204,71 @@ public final class GameSession {
     public void confirmPlacement() {
         if (phase == GamePhase.PLACING_CUE && placementValid) {
             phase = GamePhase.AIMING;
+            Vec2 spot = cueBall.position();
+            turnListeners.forEach(listener -> listener.onCueBallPlaced(spot));
         }
+    }
+
+    /** The whole state of the match while the balls are at rest, to hand to another copy of the game. */
+    public TableState capture() {
+        requireBallsAtRest();
+        List<TableState.BallState> states = balls.stream()
+                .sorted(Comparator.comparingInt(Ball::number))
+                .map(ball -> new TableState.BallState(ball.number(), ball.position(), ball.isPocketed()))
+                .toList();
+        return new TableState(phase, match.currentPlayer(), match.isBreakShot(), match.groupOf(Player.ONE),
+                lastOutcome, states);
+    }
+
+    /**
+     * Makes this session match {@code state} exactly, as captured from another copy of the game. Balls still rolling
+     * here are stopped and put where {@code state} says; any aim lock and spin being set up are dropped.
+     *
+     * @throws IllegalArgumentException if a ball on the table lies outside the playing area
+     */
+    public void restore(TableState state) {
+        requireBallsOnTable(state);
+        for (Ball ball : balls) {
+            placeBall(ball, state.balls().get(ball.number()));
+        }
+        match.restore(state.currentPlayer(), state.breakShot(), state.playerOneGroup(), pottedPerGroup());
+        phase = state.phase();
+        lastOutcome = state.lastOutcome();
+        aimLocked = false;
+        tipContact = TipContact.CENTER;
+        placementValid = BallPlacement.isFree(table, balls, cueBall, cueBall.position());
+    }
+
+    private void requireBallsAtRest() {
+        if (phase == GamePhase.BALLS_MOVING) {
+            throw new IllegalStateException("The table state is only defined while the balls are at rest");
+        }
+    }
+
+    private void requireBallsOnTable(TableState state) {
+        state.balls().stream()
+                .filter(ball -> !ball.pocketed() && !table.containsCenter(ball.position()))
+                .findFirst()
+                .ifPresent(ball -> {
+                    throw new IllegalArgumentException("Ball " + ball.number() + " lies off the table at "
+                            + ball.position());
+                });
+    }
+
+    private static void placeBall(Ball ball, TableState.BallState state) {
+        ball.putOnTable(state.position());
+        if (state.pocketed()) {
+            ball.pocket();
+        }
+    }
+
+    private Map<BallKind, Integer> pottedPerGroup() {
+        Map<BallKind, Integer> potted = new EnumMap<>(BallKind.class);
+        balls.stream()
+                .filter(Ball::isPocketed)
+                .filter(ball -> ball.kind().isGroup())
+                .forEach(ball -> potted.merge(ball.kind(), 1, Integer::sum));
+        return potted;
     }
 
     private void concludeShot() {

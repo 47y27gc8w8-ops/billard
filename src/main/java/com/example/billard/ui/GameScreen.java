@@ -4,6 +4,7 @@ import com.example.billard.model.Ball;
 import com.example.billard.model.BallKind;
 import com.example.billard.model.GamePhase;
 import com.example.billard.model.GameSession;
+import com.example.billard.model.Opponent;
 import com.example.billard.model.Player;
 import com.example.billard.model.ShotPlanner;
 import java.util.Comparator;
@@ -14,6 +15,7 @@ import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
@@ -27,9 +29,14 @@ import javafx.scene.layout.VBox;
 /**
  * The match screen: player cards and status on top, the table in the middle, power and controls below. Runs the
  * frame loop that advances the match and keeps the screen in step with it. The settings card opens over all of it;
- * balls keep rolling meanwhile. Against the bot, the table and shot controls ignore input while it is the bot's turn.
+ * balls keep rolling meanwhile. Against the bot or a player online, the table and shot controls ignore input while
+ * the opponent has the table.
  */
 public final class GameScreen extends StackPane {
+
+    /** Where the screen's buttons lead: another match with the same players, or back to the menu. */
+    public record Navigation(Runnable onPlayAgain, Runnable onMenu) {
+    }
 
     private static final double MAX_FRAME_SECONDS = 0.05;
     private static final double NANOS_PER_SECOND = 1e9;
@@ -42,7 +49,7 @@ public final class GameScreen extends StackPane {
 
     private final GameSession session;
     private final MatchMode mode;
-    private final Optional<BotOpponent> bot;
+    private final Optional<Opponent> opponent;
     private final BorderPane layout = new BorderPane();
     private final GameCanvas gameCanvas;
     private final PlayerCard playerOne;
@@ -57,21 +64,27 @@ public final class GameScreen extends StackPane {
     private final SoundEffects sounds;
     private final CueBallFace spinFace = new CueBallFace(SPIN_BUTTON_FACE_SIZE, false);
     private final Button spinButton = new Button("Spin");
+    private final Button newMatchButton = new Button("New match");
+    private final StackPane tableLayers;
     private final GameOverOverlay gameOverOverlay;
     private final SettingsOverlay settingsOverlay;
     private final AnimationTimer timer;
     private boolean wideLayout;
 
-    public GameScreen(GameSession session, MatchMode mode, GameAudio audio, Runnable onNewMatch, Runnable onMenu) {
+    /**
+     * @param opponent who plays the seat that {@code mode} says is away; empty when both play at this keyboard
+     */
+    GameScreen(GameSession session, MatchMode mode, Optional<Opponent> opponent, GameAudio audio,
+               Navigation navigation) {
         this.session = session;
         this.mode = mode;
-        this.bot = botFor(session, mode);
+        this.opponent = opponent;
         this.playerOne = new PlayerCard(mode.nameOf(Player.ONE));
         this.playerTwo = new PlayerCard(mode.nameOf(Player.TWO));
         this.gameCanvas = new GameCanvas(session);
         this.powerMeter = new PowerMeter(session::setPower);
         this.spinPicker = new SpinPicker(session, gameCanvas::requestFocus);
-        this.gameOverOverlay = new GameOverOverlay(onNewMatch, onMenu);
+        this.gameOverOverlay = new GameOverOverlay(navigation.onPlayAgain(), navigation.onMenu());
         this.settingsOverlay = new SettingsOverlay(audio, gameCanvas::requestFocus);
         this.sounds = new SoundEffects(audio.effects(), SoundBank.standard(), session.table().width(),
                 RandomGenerator.getDefault());
@@ -79,11 +92,12 @@ public final class GameScreen extends StackPane {
         this.timer = createTimer();
 
         layout.setPadding(new Insets(28));
-        layout.setCenter(new StackPane(gameCanvas, spinPicker, gameOverOverlay));
+        this.tableLayers = new StackPane(gameCanvas, spinPicker, gameOverOverlay);
+        layout.setCenter(tableLayers);
         // The overlays fit themselves to whatever room the table gets; they must not make the table area taller.
         spinPicker.setMinSize(0, 0);
         gameOverOverlay.setMinSize(0, 0);
-        layout.setBottom(buildBottomBar(onNewMatch, onMenu));
+        layout.setBottom(buildBottomBar(navigation));
         getChildren().addAll(layout, settingsOverlay);
         configureTopBar();
         widthProperty().addListener((observable, before, width) -> {
@@ -95,6 +109,11 @@ public final class GameScreen extends StackPane {
         arrangeBars(true);
     }
 
+    /** A match on this computer: two people taking turns, or a person against the bot that {@code mode} names. */
+    public static GameScreen offline(GameSession session, MatchMode mode, GameAudio audio, Navigation navigation) {
+        return new GameScreen(session, mode, botFor(session, mode), audio, navigation);
+    }
+
     public void start() {
         timer.start();
         Platform.runLater(gameCanvas::requestFocus);
@@ -102,10 +121,30 @@ public final class GameScreen extends StackPane {
 
     public void stop() {
         timer.stop();
-        bot.ifPresent(BotOpponent::stop);
+        opponent.ifPresent(Opponent::stop);
     }
 
-    private static Optional<BotOpponent> botFor(GameSession session, MatchMode mode) {
+    /** Puts {@code layer} over the table, beneath the game-over card. */
+    void addTableLayer(Node layer) {
+        tableLayers.getChildren().add(tableLayers.getChildren().indexOf(gameOverOverlay), layer);
+    }
+
+    /** Adds {@code control} after the power meter and spin button. */
+    void addShotControl(Node control) {
+        shotControls.getChildren().add(control);
+    }
+
+    /** Takes away the New match button, for matches where one player alone cannot restart. */
+    void hideNewMatchButton() {
+        newMatchButton.setVisible(false);
+        newMatchButton.setManaged(false);
+    }
+
+    GameOverOverlay gameOverOverlay() {
+        return gameOverOverlay;
+    }
+
+    private static Optional<Opponent> botFor(GameSession session, MatchMode mode) {
         return mode.botLevel().map(level ->
                 new BotOpponent(session, Player.TWO, new ShotPlanner(level, RandomGenerator.getDefault())));
     }
@@ -141,11 +180,10 @@ public final class GameScreen extends StackPane {
         }
     }
 
-    private VBox buildBottomBar(Runnable onNewMatch, Runnable onMenu) {
+    private VBox buildBottomBar(Navigation navigation) {
         Button menuButton = new Button("Menu");
-        menuButton.setOnAction(event -> onMenu.run());
-        Button newMatch = new Button("New match");
-        newMatch.setOnAction(event -> onNewMatch.run());
+        menuButton.setOnAction(event -> navigation.onMenu().run());
+        newMatchButton.setOnAction(event -> navigation.onPlayAgain().run());
         Button settingsButton = new Button("Settings");
         settingsButton.setOnAction(event -> settingsOverlay.open());
         Label hint = new Label(CONTROLS_HINT);
@@ -156,7 +194,7 @@ public final class GameScreen extends StackPane {
 
         shotControls.getChildren().addAll(powerMeter, spinButton);
         shotControls.setAlignment(Pos.CENTER_LEFT);
-        matchButtons.getChildren().addAll(settingsButton, menuButton, newMatch);
+        matchButtons.getChildren().addAll(settingsButton, menuButton, newMatchButton);
         matchButtons.setAlignment(Pos.CENTER_LEFT);
         bottomBar.getChildren().setAll(new HBox(), hint);
         bottomBar.setPadding(new Insets(20, 0, 0, 0));
@@ -207,7 +245,7 @@ public final class GameScreen extends StackPane {
     private void advanceMatch(double elapsedSeconds) {
         session.advance(elapsedSeconds);
         sounds.playQueuedClacks();
-        bot.ifPresent(opponent -> opponent.update(elapsedSeconds));
+        opponent.ifPresent(player -> player.update(elapsedSeconds));
     }
 
     private void refreshHud() {
@@ -216,11 +254,15 @@ public final class GameScreen extends StackPane {
         statusLabel.setText(StatusText.describe(session, mode));
         powerMeter.update(session.power());
         spinFace.show(session.tipContact());
-        boolean botsTurn = mode.isBot(session.currentPlayer());
-        gameCanvas.setInputEnabled(!botsTurn);
-        powerMeter.setDisable(botsTurn);
-        spinButton.setDisable(botsTurn || session.phase() != GamePhase.AIMING);
-        showGameOverIfFinished();
+        boolean waiting = isOpponentAtTheTable();
+        gameCanvas.setInputEnabled(!waiting);
+        powerMeter.setDisable(waiting);
+        spinButton.setDisable(waiting || session.phase() != GamePhase.AIMING);
+        showGameOverIfFinished(waiting);
+    }
+
+    private boolean isOpponentAtTheTable() {
+        return opponent.map(Opponent::hasTheTable).orElse(false);
     }
 
     private PlayerCard.View cardViewOf(Player player) {
@@ -242,9 +284,10 @@ public final class GameScreen extends StackPane {
                 .toList();
     }
 
-    private void showGameOverIfFinished() {
+    /** Waits while the opponent still has the table, since an online result may yet be corrected. */
+    private void showGameOverIfFinished(boolean waiting) {
         boolean finished = session.phase() == GamePhase.GAME_OVER;
-        if (finished && !gameOverOverlay.isVisible()) {
+        if (finished && !waiting && !gameOverOverlay.isVisible()) {
             gameOverOverlay.show(StatusText.winnerHeadline(session, mode), StatusText.gameOverReason(session, mode));
             sounds.playFanfare();
         }

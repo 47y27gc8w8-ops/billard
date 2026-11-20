@@ -28,4 +28,16 @@ class MatchModeTest {
         assertFalse(mode.isBot(Player.TWO));
         assertEquals("Player 2", mode.nameOf(Player.TWO));
     }
+
+    @Test
+    void onlineTheOtherSeatIsRemoteAndBothAreNamedAsTheyChose() {
+        MatchMode mode = MatchMode.online(Player.TWO, "Ann", "Ben");
+
+        assertTrue(mode.isRemote(Player.ONE));
+        assertTrue(mode.isAway(Player.ONE));
+        assertFalse(mode.isAway(Player.TWO));
+        assertFalse(mode.isBot(Player.ONE));
+        assertEquals("Ben", mode.nameOf(Player.ONE));
+        assertEquals("Ann", mode.nameOf(Player.TWO));
+    }
 }

@@ -1,6 +1,7 @@
 package com.example.billard.ui;
 
 import com.example.billard.model.BotLevel;
+import com.example.billard.net.OnlineLink;
 import java.util.List;
 import java.util.function.Consumer;
 import javafx.geometry.Insets;
@@ -8,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.Node;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -16,9 +18,14 @@ import javafx.scene.layout.VBox;
 
 /**
  * Title screen: the name, a one-line pitch, the actions, and the rack on the table under the lamp. A match starts
- * either against a bot, whose level is picked on its own page, or for two players sharing the table.
+ * against a bot, whose level is picked on its own page, for two players sharing the table, or online against a
+ * player on another computer, set up on the online page.
  */
 public final class MenuScreen extends HBox {
+
+    /** What the menu starts: a match on this computer, an online match over a connected link, or quitting. */
+    public record Actions(Consumer<MatchMode> onStart, Consumer<OnlineLink> onOnlineStart, Runnable onQuit) {
+    }
 
     private static final double TEXT_COLUMN_WIDTH = 480;
     private static final double TEXT_COLUMN_PADDING = 44;
@@ -34,17 +41,20 @@ public final class MenuScreen extends HBox {
     private final VBox levelColumn;
     private final VBox howToColumn;
     private final SettingsPanel settingsColumn;
+    private final OnlineLobby onlineColumn;
 
-    public MenuScreen(GameAudio audio, Consumer<MatchMode> onStart, Runnable onQuit) {
-        this.mainColumn = buildMainColumn(onStart, onQuit);
-        this.levelColumn = buildLevelColumn(onStart);
+    public MenuScreen(GameAudio audio, OnlinePreferences onlinePreferences, Actions actions) {
+        this.mainColumn = buildMainColumn(actions.onStart(), actions.onQuit());
+        this.levelColumn = buildLevelColumn(actions.onStart());
         this.howToColumn = buildHowToColumn();
         this.settingsColumn = new SettingsPanel(audio, this::showMain);
+        this.onlineColumn = new OnlineLobby(onlinePreferences, actions.onOnlineStart(), this::showMain);
         levelColumn.setVisible(false);
         howToColumn.setVisible(false);
         settingsColumn.setVisible(false);
+        onlineColumn.setVisible(false);
 
-        StackPane textSide = new StackPane(mainColumn, levelColumn, howToColumn, settingsColumn);
+        StackPane textSide = new StackPane(mainColumn, levelColumn, howToColumn, settingsColumn, onlineColumn);
         textSide.setMinWidth(TEXT_COLUMN_WIDTH);
         textSide.setMaxWidth(TEXT_COLUMN_WIDTH);
         textSide.setPadding(new Insets(TEXT_COLUMN_PADDING));
@@ -61,7 +71,8 @@ public final class MenuScreen extends HBox {
         Label title = new Label("Billard");
         title.getStyleClass().add("display");
         VBox brand = new VBox(BRAND_GAP, new ImageView(AppIcon.scaledTo(LOGO_SIZE)), title);
-        Label pitch = new Label("Eight-ball against the bot or a friend. Pot your group, then the eight.");
+        Label pitch = new Label("Eight-ball against the bot or a friend, here or online. Pot your group, then the "
+                + "eight.");
         pitch.getStyleClass().add("lead");
         pitch.setWrapText(true);
 
@@ -71,6 +82,9 @@ public final class MenuScreen extends HBox {
         Button twoPlayers = new Button("Two players");
         twoPlayers.setOnAction(event -> onStart.accept(MatchMode.twoPlayers()));
         twoPlayers.setAccessibleHelp("Start a match for two people taking turns at this computer");
+        Button online = new Button("Play online");
+        online.setOnAction(event -> showOnline());
+        online.setAccessibleHelp("Host or join a match against a player on another computer");
         Button howTo = new Button("How to play");
         howTo.setOnAction(event -> showHowTo());
         Button settings = new Button("Settings");
@@ -78,7 +92,8 @@ public final class MenuScreen extends HBox {
         Button quit = new Button("Quit");
         quit.setOnAction(event -> onQuit.run());
 
-        VBox actions = new VBox(12, new HBox(12, botButton, twoPlayers), new HBox(12, howTo, settings, quit));
+        VBox actions = new VBox(12, new HBox(12, botButton, twoPlayers), new HBox(12, online),
+                new HBox(12, howTo, settings, quit));
         VBox column = new VBox(28, brand, pitch, actions);
         column.setAlignment(Pos.CENTER_LEFT);
         return column;
@@ -130,6 +145,13 @@ public final class MenuScreen extends HBox {
                         + "Player 1 and break, the bot plays as Player 2. Two players is for two people taking turns "
                         + "at the same table. New match and Play again keep your choice."),
                 rule("Bot levels", levelSummary()),
+                rule("Online", "Play online lets you host a match or join one. Directly: the host shares their "
+                        + "address and the other player types it in; this works on the same network, or over the "
+                        + "internet with a forwarded port or a shared VPN. Through a relay server: the host gets a "
+                        + "room code to pass on, and nobody needs to change their router. The host breaks first, "
+                        + "then the break alternates with every rematch. You see your opponent line up live, can "
+                        + "send quick chat messages, and if the connection drops the game reconnects on its own for "
+                        + "up to a minute."),
                 rule("Bot's turn", "The bot thinks, places the cue ball if it has ball in hand, lines up and shoots "
                         + "on its own. The table and shot controls wait meanwhile; Settings, Menu and New match "
                         + "still work."),
@@ -196,13 +218,22 @@ public final class MenuScreen extends HBox {
         backButton.requestFocus();
     }
 
+    private void showOnline() {
+        showOnly(onlineColumn);
+        onlineColumn.focusFirstControl();
+    }
+
     private void showSettings() {
         showOnly(settingsColumn);
         settingsColumn.focusFirstControl();
     }
 
-    private void showOnly(VBox column) {
-        for (VBox each : List.of(mainColumn, levelColumn, howToColumn, settingsColumn)) {
+    /** Shows {@code column} alone; leaving the online page gives up any match being set up there. */
+    private void showOnly(Node column) {
+        if (column != onlineColumn) {
+            onlineColumn.cancel();
+        }
+        for (Node each : List.of(mainColumn, levelColumn, howToColumn, settingsColumn, onlineColumn)) {
             each.setVisible(each == column);
         }
     }

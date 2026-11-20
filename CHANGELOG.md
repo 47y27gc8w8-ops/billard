@@ -13,10 +13,16 @@ All notable changes to Billard. Versions follow [Semantic Versioning](https://se
   power error, in how much they play for position, and in how many shots they try; the Boss never misses and
   searches thousands of shots, including banks and kicks.
 - How to play and the README explain the opponents, the bot levels and how the bot plays.
+- Online play. **Play online** on the title screen hosts or joins a match against another computer, either
+  directly by address (port 47474) or through a relay server by four-character room code. Both games replay each
+  shot, and the shooter's final table settles any difference.
+- Live opponent aim, preset quick-chat messages, rematches that start once both players ask, and automatic
+  reconnecting for up to a minute after a dropped connection.
+- A small relay server (`com.example.billard.net.RelayServer`) that runs without JavaFX.
 
 ### Changed
 
-- The table, power bar and spin button ignore input while the bot is playing.
+- The table, power bar and spin button ignore input while the bot or the online opponent is playing.
 - **New match** and **Play again** keep the chosen opponent and level.
 - The bot is named after its level, for example "Hard bot", on the player card and in the status line.
 - The bot sets its final aim exactly, and plans on several threads at once.
