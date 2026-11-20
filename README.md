@@ -4,7 +4,7 @@
 
 Eight-ball against a computer opponent or a second player at the same screen, written in JavaFX 21 (Java 21+).
 
-**Version 1.0.0.** See [CHANGELOG.md](CHANGELOG.md) for what each release added.
+**Version 1.2.0.** See [CHANGELOG.md](CHANGELOG.md) for what each release added.
 
 ## Features
 
