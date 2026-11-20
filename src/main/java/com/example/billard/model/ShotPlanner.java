@@ -11,25 +11,18 @@ import java.util.random.RandomGenerator;
  * Chooses the bot's shots by trying them out. Every candidate is played forward on a copy of the table with the
  * game's own physics and judged by the game's own rules, so the bot sees scratches, fouls and early eights exactly
  * as the match would score them. Among the shots that work it prefers those that still work when struck a little
- * off, and that leave an easy next shot for itself or no easy shot for the opponent. Its skill then blurs the
- * chosen shot, so it can miss.
+ * off, and, depending on its {@link BotLevel}, those that leave an easy next shot for itself or no easy shot for
+ * the opponent. Its level then blurs the chosen shot, so it can miss; at {@link BotLevel#BOSS} it plays the
+ * simulated shot exactly.
  *
- * <p>Candidates: pots of every legal ball into every pocket at a few powers and spins, a sweep of plain shots all
- * round the cue ball as a fallback when no pot is on, and, with ball in hand, straight-in pots from spots behind
- * each legal ball.
+ * <p>Candidates, in the amounts the level's {@link CandidateSearch} sets: pots of every legal ball into every pocket
+ * at several powers and spins, a sweep of plain shots all round the cue ball that finds banks, kicks and safeties,
+ * and, with ball in hand, straight-in pots from spots behind each legal ball.
  */
 public final class ShotPlanner {
 
-    private static final double[] POT_POWERS = {0.3, 0.5, 0.75};
-    private static final TipContact DRAW = new TipContact(0, -0.5);
-    private static final TipContact FOLLOW = new TipContact(0, 0.4);
-    private static final List<TipContact> POT_TIPS = List.of(TipContact.CENTER, DRAW, FOLLOW);
     private static final double MAX_CUT_ANGLE = Math.toRadians(78);
     private static final double EASY_CUT_ANGLE = Math.toRadians(45);
-    private static final int SWEEP_DIRECTIONS = 72;
-    private static final double SWEEP_POWER = 0.55;
-    private static final double[] PLACEMENT_DISTANCES = {70, 160};
-    private static final double[] PLACEMENT_POWERS = {0.35, 0.6};
     private static final int SHORTLIST_SIZE = 12;
     private static final double MAX_SIMULATED_SECONDS = 30;
     private static final int MAX_STEPS = (int) (MAX_SIMULATED_SECONDS / PhysicsEngine.FIXED_STEP);
@@ -39,23 +32,28 @@ public final class ShotPlanner {
     private static final double FOUL_SCORE = -100;
     private static final double KEEP_TURN_SCORE = 100;
     private static final double POTTED_BALL_SCORE = 10;
-    private static final double EASY_SHOT_SCORE = 5;
     private static final int MAX_EASY_SHOTS_COUNTED = 6;
 
     private record Scored(BotMove move, double score) {
     }
 
-    private final BotSkill skill;
+    private final BotLevel level;
+    private final CandidateSearch search;
     private final RandomGenerator random;
 
-    public ShotPlanner(BotSkill skill, RandomGenerator random) {
-        this.skill = skill;
+    public ShotPlanner(BotLevel level, RandomGenerator random) {
+        this.level = level;
+        this.search = level.search();
         this.random = random;
     }
 
-    /** The move the bot plays from {@code snapshot}, already blurred by its skill. Takes a fraction of a second. */
+    /**
+     * The move the bot plays from {@code snapshot}, already blurred by its level. Candidates are simulated in
+     * parallel, each on its own copy of the table; the search takes a fraction of a second, or about a second for the
+     * Boss.
+     */
     public BotMove plan(TableSnapshot snapshot) {
-        BotMove best = candidates(snapshot).stream()
+        BotMove best = candidates(snapshot).parallelStream()
                 .map(move -> new Scored(move, score(snapshot, move)))
                 .sorted(Comparator.comparingDouble(Scored::score).reversed())
                 .limit(SHORTLIST_SIZE)
@@ -63,10 +61,10 @@ public final class ShotPlanner {
                 .max(Comparator.comparingDouble(Scored::score))
                 .orElseThrow()
                 .move();
-        return best.withShot(skill.blur(best.shot(), random));
+        return best.withShot(level.blur(best.shot(), random));
     }
 
-    private static List<BotMove> candidates(TableSnapshot snapshot) {
+    private List<BotMove> candidates(TableSnapshot snapshot) {
         List<BotMove> moves = new ArrayList<>();
         addPots(snapshot, moves);
         addSweep(moves);
@@ -76,7 +74,7 @@ public final class ShotPlanner {
         return moves;
     }
 
-    private static void addPots(TableSnapshot snapshot, List<BotMove> moves) {
+    private void addPots(TableSnapshot snapshot, List<BotMove> moves) {
         Table table = snapshot.table();
         Vec2 cue = snapshot.cueBall().position();
         for (Ball target : legalBallsOnTable(snapshot.balls(), snapshot.match(), snapshot.shooter())) {
@@ -86,27 +84,29 @@ public final class ShotPlanner {
         }
     }
 
-    private static void addPotShots(List<BotMove> moves, double angle) {
-        for (double power : POT_POWERS) {
-            POT_TIPS.forEach(tip -> moves.add(BotMove.from(new Shot(angle, power, tip))));
+    private void addPotShots(List<BotMove> moves, double angle) {
+        for (double power : search.potPowers()) {
+            search.potTips().forEach(tip -> moves.add(BotMove.from(new Shot(angle, power, tip))));
         }
     }
 
-    private static void addSweep(List<BotMove> moves) {
-        for (int step = 0; step < SWEEP_DIRECTIONS; step++) {
-            double angle = 2 * Math.PI * step / SWEEP_DIRECTIONS;
-            moves.add(BotMove.from(new Shot(angle, SWEEP_POWER, TipContact.CENTER)));
+    private void addSweep(List<BotMove> moves) {
+        for (int step = 0; step < search.sweepDirections(); step++) {
+            double angle = 2 * Math.PI * step / search.sweepDirections();
+            for (double power : search.sweepPowers()) {
+                moves.add(BotMove.from(new Shot(angle, power, TipContact.CENTER)));
+            }
         }
     }
 
     /** Spots straight behind each legal ball as seen from a pocket, where the pot is a plain straight shot. */
-    private static void addPlacements(TableSnapshot snapshot, List<BotMove> moves) {
+    private void addPlacements(TableSnapshot snapshot, List<BotMove> moves) {
         Table table = snapshot.table();
         for (Ball target : legalBallsOnTable(snapshot.balls(), snapshot.match(), snapshot.shooter())) {
             for (Table.Pocket pocket : table.pockets()) {
                 Vec2 towardPocket = pocket.center().minus(target.position()).normalized();
                 Vec2 ghost = ghostBall(table, target.position(), towardPocket);
-                for (double distance : PLACEMENT_DISTANCES) {
+                for (double distance : search.placementDistances()) {
                     Vec2 spot = ghost.minus(towardPocket.times(distance));
                     if (BallPlacement.isFree(table, snapshot.balls(), snapshot.cueBall(), spot)) {
                         addPlacedShots(moves, spot, towardPocket.angle());
@@ -116,8 +116,8 @@ public final class ShotPlanner {
         }
     }
 
-    private static void addPlacedShots(List<BotMove> moves, Vec2 spot, double angle) {
-        for (double power : PLACEMENT_POWERS) {
+    private void addPlacedShots(List<BotMove> moves, Vec2 spot, double angle) {
+        for (double power : search.placementPowers()) {
             moves.add(BotMove.placedAt(spot, new Shot(angle, power, TipContact.CENTER)));
         }
     }
@@ -149,11 +149,17 @@ public final class ShotPlanner {
         return balls.stream().filter(ball -> !ball.isPocketed() && legal.contains(ball.kind())).toList();
     }
 
-    /** The average score of the shot as aimed and when struck a typical error to either side. */
+    /**
+     * The average score of the shot as aimed and when struck a typical error to either side. A bot that never
+     * misses plays the shot as aimed, so its score stands.
+     */
     private double robustScore(TableSnapshot snapshot, Scored scored) {
+        if (level.aimError() == 0) {
+            return scored.score();
+        }
         Shot shot = scored.move().shot();
-        double left = score(snapshot, scored.move().withShot(turned(shot, -skill.aimError())));
-        double right = score(snapshot, scored.move().withShot(turned(shot, skill.aimError())));
+        double left = score(snapshot, scored.move().withShot(turned(shot, -level.aimError())));
+        double right = score(snapshot, scored.move().withShot(turned(shot, level.aimError())));
         return (scored.score() + left + right) / 3;
     }
 
@@ -162,7 +168,7 @@ public final class ShotPlanner {
     }
 
     /** Plays {@code move} on a copy of the table and judges where it leaves the match. */
-    private static double score(TableSnapshot snapshot, BotMove move) {
+    private double score(TableSnapshot snapshot, BotMove move) {
         List<Ball> balls = snapshot.copyOfBalls();
         Ball cueBall = TableSnapshot.cueBallOf(balls);
         move.cueSpot().ifPresent(cueBall::putOnTable);
@@ -183,14 +189,14 @@ public final class ShotPlanner {
      * good, and better with more balls down and an easy next shot; giving it up is better the fewer easy shots
      * the opponent is left.
      */
-    private static double judge(TurnOutcome outcome, int ballsPotted, int easyShotsLeft) {
+    private double judge(TurnOutcome outcome, int ballsPotted, int easyShotsLeft) {
         if (outcome.winner().isPresent()) {
             return outcome.winner().get() == outcome.shooter() ? WIN_SCORE : LOSS_SCORE;
         }
         if (outcome.foul().isFoul()) {
             return FOUL_SCORE;
         }
-        double leave = EASY_SHOT_SCORE * easyShotsLeft;
+        double leave = level.leaveWeight() * easyShotsLeft;
         if (outcome.nextPlayer() != outcome.shooter()) {
             return -leave;
         }

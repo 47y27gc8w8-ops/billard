@@ -8,7 +8,8 @@ Eight-ball against a computer opponent or a second player at the same screen, wr
 
 ## Features
 
-- Play against a bot, or two players taking turns on one screen
+- Play against a bot at one of four levels, from Easy to a Boss that never misses, or two players taking turns
+  on one screen
 - Eight-ball rules with groups, fouls and ball in hand
 - Ball physics with rolling, sliding and cushion bounces, plus cue-ball spin (draw, follow and side)
 - Aim lock, a guide line and a power bar for precise shots
@@ -20,27 +21,42 @@ Eight-ball against a computer opponent or a second player at the same screen, wr
 
 Pick an opponent on the title screen:
 
-- **Play vs bot**: you are Player 1 and break; the bot plays as Player 2. On its turn it thinks for a moment,
-  places the cue ball if it has ball in hand, swings the cue onto its line and shoots. While it plays, the table,
-  the power bar and the spin button ignore input; Settings, Menu and New match keep working.
+- **Play vs bot**: pick a level, then play as Player 1 and break; the bot plays as Player 2, named after its
+  level (for example "Hard bot"). On its turn it thinks for a moment, places the cue ball if it has ball in hand,
+  swings the cue onto its line and shoots. While it plays, the table, the power bar and the spin button ignore
+  input; Settings, Menu and New match keep working.
 - **Two players**: two people take turns at the same mouse and keyboard, as Player 1 and Player 2.
 
-**New match** and **Play again** keep the opponent you chose; go back to the menu to switch.
+**New match** and **Play again** keep the opponent and level you chose; go back to the menu to switch.
+
+### Bot levels
+
+| Level | Plays like | Measured in bot-against-itself matches |
+| :--- | :--- | :--- |
+| Easy | Still learning: misses most pots and never plays safe. You would have to try to lose. | Keeps the table on about 1 shot in 6, around 25 fouls a match |
+| Medium | A casual player: pots the easy ones, misses plenty. Tough for beginners, beatable for regulars. | About 1 shot in 3, around 3 fouls a match |
+| Hard | A strong player: pots most shots and plays for position, but misses now and then. | About 3 shots in 5, rarely fouls |
+| Boss | Never misses: every shot is played exactly as planned. Give it one turn and the match is usually over. | Cleared the table on its first visit in 10 of 12 test racks, never fouled |
+
+The levels differ in three ways, set in `BotLevel`: how far the bot's aim and power stray from the planned shot,
+how much it cares about the position it leaves (Easy not at all), and how many shots it tries. Easy, Medium and
+Hard try a few hundred; the Boss tries a few thousand, including banks, kicks and spin for position. When the Boss
+finds no pot at all it plays a safety, so your only chances against it are the break and those rare safeties.
 
 ### How the bot plays
 
-The bot (`ShotPlanner` in `com.example.billard.model`) tries its shots out before playing one. It lists pots of
+The bot (`ShotPlanner` in `com.example.billard.model`) tries its shots out before playing one, at every level. It lists pots of
 every ball it may legally hit into every pocket, at several powers and with centre, draw or follow spin, plus a
 ring of plain shots all round the cue ball for when no pot is on. With ball in hand it also tries spots straight
 behind each of its balls. Each candidate is played forward on a copy of the table with the game's own physics and
 judged by the game's own rules, so it sees scratches, fouls and an early 8-ball exactly as the match would. It
 prefers shots that win, then shots that keep the table with an easy next shot, then safeties that leave you
 nothing easy. The best few are checked again with the aim slightly off, so it favours shots with room for error.
-Finally its aim and power get a small random error, so it misses long and thin shots now and then, like a solid
-club player.
+Finally its aim and power get a random error that depends on its level. The Boss gets none, and since the
+simulation uses the same fixed-step physics as the game, its shot ends exactly as it planned.
 
-Planning runs on a background thread from a snapshot of the table, typically in well under a fifth of a second,
-so the game never stutters while the bot thinks.
+Planning runs on background threads from a snapshot of the table, so the game never stutters while the bot
+thinks: typically well under a tenth of a second, and under a second for the Boss.
 
 ## Run
 

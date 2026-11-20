@@ -7,14 +7,19 @@ All notable changes to Billard. Versions follow [Semantic Versioning](https://se
 ### Added
 
 - Play against a bot. The title screen now offers **Play vs bot** and **Two players**; the bot takes Player 2's
-  turns, plans each shot by simulating candidates with the game's own physics and rules, places the cue ball
-  when it has ball in hand, and aims with a small human-like error.
-- How to play and the README explain the two opponents and how the bot plays.
+  turns, plans each shot by simulating candidates with the game's own physics and rules, and places the cue ball
+  when it has ball in hand.
+- Four bot levels, picked on a new page after **Play vs bot**: Easy, Medium, Hard and Boss. They differ in aim and
+  power error, in how much they play for position, and in how many shots they try; the Boss never misses and
+  searches thousands of shots, including banks and kicks.
+- How to play and the README explain the opponents, the bot levels and how the bot plays.
 
 ### Changed
 
 - The table, power bar and spin button ignore input while the bot is playing.
-- **New match** and **Play again** keep the chosen opponent.
+- **New match** and **Play again** keep the chosen opponent and level.
+- The bot is named after its level, for example "Hard bot", on the player card and in the status line.
+- The bot sets its final aim exactly, and plans on several threads at once.
 - The cue stroke is shared by players and the bot (`Shot`), and the rules expose which balls a player may hit
   first, so the bot and the referee use the same logic.
 

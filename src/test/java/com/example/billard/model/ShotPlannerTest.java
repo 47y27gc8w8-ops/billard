@@ -1,5 +1,6 @@
 package com.example.billard.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -10,10 +11,9 @@ import org.junit.jupiter.api.Test;
 class ShotPlannerTest {
 
     private static final int MAX_STEPS = 20_000;
-    private static final BotSkill STEADY_HAND = new BotSkill(0, 0);
 
     private final Table table = Table.standard();
-    private final ShotPlanner planner = new ShotPlanner(STEADY_HAND, RandomGenerator.of("L64X128MixRandom"));
+    private final ShotPlanner planner = new ShotPlanner(BotLevel.BOSS, RandomGenerator.of("L64X128MixRandom"));
 
     /** Plays {@code move} on a copy of the snapshot's balls until they stop, and returns them. */
     private List<Ball> play(TableSnapshot snapshot, BotMove move) {
@@ -85,5 +85,53 @@ class ShotPlannerTest {
 
         assertTrue(session.cueBall().position().equals(cueBefore));
         assertTrue(session.balls().stream().noneMatch(Ball::isMoving));
+    }
+
+    @Test
+    void aBossShotPlayedThroughTheSessionEndsExactlyAsSimulated() {
+        GameSession session = new GameSession(table);
+        session.setPower(1.0);
+        playThrough(session);
+        TableSnapshot snapshot = session.snapshot();
+        BotMove move = planner.plan(snapshot);
+
+        List<Ball> simulated = play(snapshot, move);
+        move.cueSpot().ifPresent(session::previewCueBall);
+        session.confirmPlacement();
+        session.setAimAngle(move.shot().angle());
+        session.setPower(move.shot().power());
+        session.setTipContact(move.shot().tip());
+        playThrough(session);
+
+        for (Ball ball : session.balls()) {
+            Ball twin = numbered(simulated, ball.number());
+            assertEquals(twin.isPocketed(), ball.isPocketed(), "ball " + ball.number() + " pocketed");
+            if (!ball.isPocketed()) {
+                assertEquals(twin.position(), ball.position(), "ball " + ball.number() + " position");
+            }
+        }
+    }
+
+    private static void playThrough(GameSession session) {
+        session.shoot();
+        for (int frame = 0; frame < MAX_STEPS && session.phase() == GamePhase.BALLS_MOVING; frame++) {
+            session.advance(1.0 / 60.0);
+        }
+    }
+
+    @Test
+    void theBossPlaysItsShotWithoutAnyError() {
+        Shot shot = new Shot(0.7, 0.45, TipContact.CENTER);
+
+        assertEquals(shot, BotLevel.BOSS.blur(shot, RandomGenerator.of("L64X128MixRandom")));
+    }
+
+    @Test
+    void eachLevelAimsMoreSteadilyThanTheOneBelow() {
+        BotLevel[] levels = BotLevel.values();
+        for (int i = 1; i < levels.length; i++) {
+            assertTrue(levels[i].aimError() < levels[i - 1].aimError(), levels[i] + " should aim better");
+        }
+        assertEquals(0, BotLevel.BOSS.aimError());
     }
 }
