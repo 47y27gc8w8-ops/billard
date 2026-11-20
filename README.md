@@ -2,7 +2,8 @@
 
 # Billard
 
-Eight-ball against a computer opponent or a second player at the same screen, written in JavaFX 21 (Java 21+).
+Eight-ball against a computer opponent, a second player at the same screen, or a friend online, written in
+JavaFX 21 (Java 21+).
 
 **Version 1.0.0.** See [CHANGELOG.md](CHANGELOG.md) for what each release added.
 
@@ -10,6 +11,8 @@ Eight-ball against a computer opponent or a second player at the same screen, wr
 
 - Play against a bot at one of four levels, from Easy to a Boss that never misses, or two players taking turns
   on one screen
+- Online matches against a player on another computer: host and join by address, or meet through a relay
+  server by room code; live aim, quick chat, rematches and automatic reconnecting
 - Eight-ball rules with groups, fouls and ball in hand
 - Ball physics with rolling, sliding and cushion bounces, plus cue-ball spin (draw, follow and side)
 - Aim lock, a guide line and a power bar for precise shots
@@ -26,6 +29,7 @@ Pick an opponent on the title screen:
   swings the cue onto its line and shoots. While it plays, the table, the power bar and the spin button ignore
   input; Settings, Menu and New match keep working.
 - **Two players**: two people take turns at the same mouse and keyboard, as Player 1 and Player 2.
+- **Play online**: play against someone on another computer; see [Online play](#online-play).
 
 **New match** and **Play again** keep the opponent and level you chose; go back to the menu to switch.
 
@@ -57,6 +61,52 @@ simulation uses the same fixed-step physics as the game, its shot ends exactly a
 
 Planning runs on background threads from a snapshot of the table, so the game never stutters while the bot
 thinks: typically well under a tenth of a second, and under a second for the Boss.
+
+## Online play
+
+Choose **Play online**, type the name your opponent will see, and pick how the two computers meet:
+
+- **Directly, by address.** One player presses **Host a match**; the game shows this computer's addresses
+  (port 47474). The other types one of them under **Or join a match** and presses **Join**. This works at once on
+  the same network. Over the internet the host has to forward TCP port 47474 on their router, or both players
+  join the same VPN (for example Tailscale) and use its address.
+- **Through a relay server, by room code.** Both players type the relay server's address. The host gets a
+  four-character room code such as `K7QM` and passes it on; the other player joins with it. Nobody needs to touch
+  their router, but someone has to run the relay (see below).
+
+The host breaks in the first match, and the break alternates with every rematch. While your opponent plays you see
+their cue move live and the table ignores your input. **Chat** sends one of a few preset messages. After the match,
+**Play again** asks for a rematch, which starts once both players have asked. If the connection drops, both games
+keep trying to reconnect for up to a minute and then carry on where they were; **Menu** leaves the match and tells
+your opponent.
+
+### How the two games stay in step
+
+Only the shooter's decisions travel: where they placed the cue ball, and the shot itself (direction, power and
+where the tip meets the ball). Both computers then roll the same shot with the same physics. Since floating-point
+maths can differ in the last digits between machines, the shooter's computer sends its final table once its balls
+stop, and the other side takes it over; until then the other player cannot act. Messages that must arrive are
+numbered and sent again after a reconnect; live aim is simply replaced by the next update.
+
+Everything received is checked before use: lines are capped at 4 KiB, every field is parsed against an expected
+type and range (no NaN or infinite numbers, shot power 0 to 1, known names only), and player names are limited to
+16 letters, digits and simple punctuation. Chat uses preset phrases only, so no typed text reaches the other screen.
+A table state is accepted only right after the other player's own shot.
+
+### Running a relay server
+
+The relay is part of the game's code but needs no JavaFX. Build the game, then on any machine both players can
+reach:
+
+```
+./mvnw compile
+java -cp target/classes com.example.billard.net.RelayServer 47475
+```
+
+The port defaults to 47475. The relay only pairs players by room code and passes their lines on; it never reads
+the game. Each player gets a secret for their seat, so after a dropped connection only they can take it back.
+Empty rooms are removed after two minutes, and at most 500 rooms exist at once. Traffic is not encrypted, so run
+it for friends rather than as a public service.
 
 ## Run
 

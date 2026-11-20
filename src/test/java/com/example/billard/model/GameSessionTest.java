@@ -159,4 +159,29 @@ class GameSessionTest {
 
         assertEquals(Math.PI / 2, session.aimAngle(), 1e-9);
     }
+
+    @Test
+    void aCapturedTableRestoresExactlyOnAnotherSession() {
+        session.setPower(1.0);
+        playShotToCompletion();
+        GameSession copy = new GameSession(table);
+
+        copy.restore(session.capture());
+
+        assertEquals(session.capture(), copy.capture());
+        assertEquals(session.match().groupOf(Player.ONE), copy.match().groupOf(Player.ONE));
+    }
+
+    @Test
+    void restoringStopsBallsThatAreStillRolling() {
+        TableState start = session.capture();
+        session.setPower(1.0);
+        session.shoot();
+        session.advance(FRAME);
+
+        session.restore(start);
+
+        assertEquals(start, session.capture());
+        assertTrue(session.balls().stream().noneMatch(Ball::isMoving));
+    }
 }

@@ -3,6 +3,7 @@ package com.example.billard.ui;
 import com.example.billard.model.BotMove;
 import com.example.billard.model.GamePhase;
 import com.example.billard.model.GameSession;
+import com.example.billard.model.Opponent;
 import com.example.billard.model.Player;
 import com.example.billard.model.Shot;
 import com.example.billard.model.ShotPlanner;
@@ -15,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
  * to think, the cue ball placed if it has ball in hand, the cue swung round onto the line, a short settle, then
  * the shot. Planning runs on a background thread on a snapshot of the table, so the frame loop never waits for it.
  */
-final class BotOpponent {
+final class BotOpponent implements Opponent {
 
     private static final double MIN_THINK_SECONDS = 0.7;
     private static final double AIM_SECONDS = 0.9;
@@ -39,7 +40,8 @@ final class BotOpponent {
     }
 
     /** Moves the bot's turn on by one frame. Does nothing while it is not the bot's turn to act. */
-    void update(double elapsedSeconds) {
+    @Override
+    public void update(double elapsedSeconds) {
         if (!isToAct()) {
             stop();
             return;
@@ -53,8 +55,14 @@ final class BotOpponent {
         }
     }
 
+    @Override
+    public boolean hasTheTable() {
+        return session.currentPlayer() == seat && session.phase() != GamePhase.GAME_OVER;
+    }
+
     /** Drops any plan in progress; the bot starts afresh on its next turn. */
-    void stop() {
+    @Override
+    public void stop() {
         if (pendingPlan != null) {
             pendingPlan.cancel(false);
             pendingPlan = null;

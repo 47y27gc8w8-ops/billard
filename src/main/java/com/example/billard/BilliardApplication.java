@@ -8,11 +8,14 @@ import com.example.billard.audio.SoundOutput;
 import com.example.billard.audio.VolumeSettings;
 import com.example.billard.model.GameSession;
 import com.example.billard.model.Table;
+import com.example.billard.net.OnlineLink;
 import com.example.billard.ui.AppIcon;
 import com.example.billard.ui.GameAudio;
 import com.example.billard.ui.GameScreen;
 import com.example.billard.ui.MatchMode;
 import com.example.billard.ui.MenuScreen;
+import com.example.billard.ui.OnlineMatchScreen;
+import com.example.billard.ui.OnlinePreferences;
 import com.example.billard.ui.Theme;
 import java.util.prefs.Preferences;
 import java.util.random.RandomGenerator;
@@ -30,7 +33,7 @@ import javafx.stage.Stage;
 
 /**
  * Application shell: owns the window and the sound, and switches between the menu and a running match against the
- * bot or between two players.
+ * bot, between two players, or online. An online session's link lives on across rematches until the player leaves.
  */
 public final class BilliardApplication extends Application {
 
@@ -45,11 +48,15 @@ public final class BilliardApplication extends Application {
     private SoundOutput mixer = SoundOutput.SILENT;
     private MusicPlayer music;
     private GameAudio audio;
+    private OnlinePreferences onlinePreferences;
     private GameScreen activeGame;
+    private OnlineLink activeLink;
 
     @Override
     public void start(Stage stage) {
-        VolumeSettings volumes = new VolumeSettings(Preferences.userNodeForPackage(BilliardApplication.class));
+        Preferences preferences = Preferences.userNodeForPackage(BilliardApplication.class);
+        VolumeSettings volumes = new VolumeSettings(preferences);
+        onlinePreferences = new OnlinePreferences(preferences);
         mixer = AudioMixer.openDefault();
         audio = new GameAudio(new ScaledOutput(mixer, volumes::effectsGain), volumes);
         music = new MusicPlayer(LoungeMusic.TRACKS, volumes.musicGain(), RandomGenerator.getDefault());
@@ -74,6 +81,7 @@ public final class BilliardApplication extends Application {
     @Override
     public void stop() {
         stopActiveGame();
+        leaveOnlineSession();
         if (music != null) {
             music.close();
         }
@@ -97,15 +105,40 @@ public final class BilliardApplication extends Application {
 
     private void showMenu() {
         stopActiveGame();
-        screenHost.getChildren().setAll(new MenuScreen(audio, this::startMatch, Platform::exit));
+        leaveOnlineSession();
+        MenuScreen.Actions actions = new MenuScreen.Actions(this::startMatch, link -> startOnlineMatch(link, 0),
+                Platform::exit);
+        screenHost.getChildren().setAll(new MenuScreen(audio, onlinePreferences, actions));
     }
 
     private void startMatch(MatchMode mode) {
         stopActiveGame();
         GameSession session = new GameSession(Table.standard());
-        activeGame = new GameScreen(session, mode, audio, () -> startMatch(mode), this::showMenu);
+        activeGame = GameScreen.offline(session, mode, audio,
+                new GameScreen.Navigation(() -> startMatch(mode), this::showMenu));
         screenHost.getChildren().setAll(activeGame);
         activeGame.start();
+    }
+
+    /** Starts match {@code matchNumber} of the online session on {@code link}, counting from 0. */
+    private void startOnlineMatch(OnlineLink link, int matchNumber) {
+        if (link.state() == OnlineLink.State.CLOSED) {
+            return;
+        }
+        stopActiveGame();
+        activeLink = link;
+        activeGame = OnlineMatchScreen.open(link, matchNumber, audio, () -> startOnlineMatch(link, matchNumber + 1),
+                this::showMenu);
+        screenHost.getChildren().setAll(activeGame);
+        activeGame.start();
+    }
+
+    /** Tells the other player this one has left, if an online session is running, and closes the connection. */
+    private void leaveOnlineSession() {
+        if (activeLink != null) {
+            activeLink.close();
+            activeLink = null;
+        }
     }
 
     private void stopActiveGame() {
